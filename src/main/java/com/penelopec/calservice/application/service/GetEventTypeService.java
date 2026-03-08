@@ -1,0 +1,45 @@
+package com.penelopec.calservice.application.service;
+
+import com.penelopec.calservice.application.mapper.EventTypeOutputMapper;
+import com.penelopec.calservice.application.output.EventTypeOutput;
+import com.penelopec.calservice.application.port.in.GetEventTypeUseCase;
+import com.penelopec.calservice.domain.entity.EventType;
+import com.penelopec.calservice.domain.exception.EventTypeNotFoundException;
+import com.penelopec.calservice.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.domain.repository.EventTypeRepository;
+
+public class GetEventTypeService implements GetEventTypeUseCase {
+
+  private final CalComEventTypeGateway calComGateway;
+  private final EventTypeRepository eventTypeRepository;
+
+  public GetEventTypeService(CalComEventTypeGateway calComGateway,
+                             EventTypeRepository eventTypeRepository) {
+    this.calComGateway = calComGateway;
+    this.eventTypeRepository = eventTypeRepository;
+  }
+
+  @Override
+  public EventTypeOutput execute(Long eventTypeId) {
+    EventType eventType = calComGateway.findById(eventTypeId)
+      .orElseThrow(() -> new EventTypeNotFoundException(
+        "EventType não encontrado no Cal.com: " + eventTypeId));
+
+    if (eventType.getEstateId() == null) {
+      EventType finalEventType = eventType;
+      eventType = eventTypeRepository.findById(eventTypeId)
+        .map(local -> EventType.reconstitute(
+          finalEventType.getId(),
+          finalEventType.getTitle(),
+          finalEventType.getSlugValue(),
+          finalEventType.getDescription(),
+          finalEventType.getLengthInMinutes(),
+          finalEventType.getMinimumBookingNotice(),
+          finalEventType.isHidden(),
+          local.getEstateId()))
+        .orElse(eventType);
+    }
+
+    return EventTypeOutputMapper.toOutput(eventType);
+  }
+}
