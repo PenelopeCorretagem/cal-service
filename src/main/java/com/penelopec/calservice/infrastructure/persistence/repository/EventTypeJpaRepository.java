@@ -1,0 +1,11 @@
+package com.penelopec.calservice.infrastructure.persistence.repository;
+
+import com.penelopec.calservice.infrastructure.persistence.entity.EventTypeJpaEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface EventTypeJpaRepository extends JpaRepository<EventTypeJpaEntity, Long> {
+
+    Optional<EventTypeJpaEntity> findByEstateId(Long estateId);
+}
