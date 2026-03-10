@@ -19,7 +19,7 @@ public class CalClientConfig {
     return RestClient.builder()
       .baseUrl(prop.api().baseUrl())
       .defaultHeader("Authorization", "Bearer " + prop.api().key())
-      .defaultHeader("cal-api-version", prop.api().versionV2())
+      .defaultHeader("cal-api-version", prop.api().versionV1())
       .build();
   }
 }
