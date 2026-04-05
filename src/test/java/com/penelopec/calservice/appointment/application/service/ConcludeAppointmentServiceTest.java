@@ -68,6 +68,23 @@ class ConcludeAppointmentServiceTest {
         .hasMessageContaining("Agendamento")
         .hasMessageContaining("99");
     }
+
+    @Test
+    @DisplayName("Deve lancar excecao ao concluir agendamento CANCELLED")
+    void shouldThrowException_whenAppointmentIsCancelled() {
+      // Given
+      Appointment appointment = createAppointment(Status.CANCELLED);
+      ConcludeAppointmentCommand command = new ConcludeAppointmentCommand(1L);
+      when(repository.findById(1L)).thenReturn(Optional.of(appointment));
+
+      // When
+      Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> service.execute(command));
+
+      // Then
+      assertThat(thrown)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("cancelado");
+    }
   }
 
   private Appointment createAppointment(Status status) {
