@@ -58,4 +58,10 @@ public class EventTypeConfig {
                                                      EventTypeRepository repository) {
     return new SyncEventTypesService(estateGateway, calComGateway, repository);
   }
+
+  @Bean
+  public HandleEstateChangedUseCase handleEstateChangedUseCase(EventTypeRepository repository,
+                                                               CalComEventTypeGateway calComGateway) {
+    return new HandleEstateChangedService(repository, calComGateway);
+  }
 }

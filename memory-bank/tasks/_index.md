@@ -2,13 +2,15 @@
 
 ## In Progress
 
-_(nenhuma tarefa em progresso no momento)_
+_(nenhuma tarefa em andamento)_
 
 ## Pending
 
 _(nenhuma tarefa pendente)_
 
 ## Completed
+
+- [TASK010] RabbitMQ Estate Changed Consumer — end-to-end implementado (15/15 subtarefas, 134 testes) - Concluído em 2026-04-05
 
 - [TASK009] Documentação de uso dos agents — guia-agents.md com fluxos de exemplo - Concluído em 2026-04-05
 - [TASK008] Ciclo de governança contínua — checklist quinzenal, template retro, processo convergência - Concluído em 2026-04-05

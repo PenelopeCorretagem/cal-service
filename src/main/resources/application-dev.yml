@@ -16,6 +16,11 @@ spring:
       ddl-auto: create-drop
     show-sql: true
 
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+
 scheduler:
   sync:
     enabled: false

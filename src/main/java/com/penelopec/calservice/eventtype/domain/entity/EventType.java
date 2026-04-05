@@ -91,6 +91,14 @@ public class EventType {
     this.hidden = !this.hidden;
   }
 
+  public void hide() {
+    this.hidden = true;
+  }
+
+  public void show() {
+    this.hidden = false;
+  }
+
   public Long getId() {
     return id;
   }
