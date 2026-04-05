@@ -1,10 +1,20 @@
 # Active Context — cal-service
 
-**Última atualização**: 2026-04-05 (TASK008 concluída — Fase 4 completa)
+**Última atualização**: 2026-04-05 (TASK010 iniciada — plano aprovado)
 
 ## Foco Atual
 
-Fase 4 concluída. Todo o workspace GitHub Copilot está operacional: agents especializados, skills, prompts e ciclo de governança contínua. O processo de revisão quinzenal está documentado em `docs/governanca-continua.md` e pode ser disparado a qualquer momento.
+TASK010 concluída (2026-04-05). Todas as 15 subtarefas implementadas e testadas. 134 testes passando, BUILD SUCCESS.
+
+## O Que Foi Feito Recentemente
+
+- **TASK010 concluída (2026-04-05)**: Consumer RabbitMQ implementado end-to-end.
+  - Fase A: dependência AMQP + configuração YAML + `RabbitMQConfig.java` / `RabbitMQProperties.java`.
+  - Fase B: `EstateChangedMessage.java` (record) + `EstateStatus.java` (enum).
+  - Fase C: `hide()` e `show()` idempotentes na entidade `EventType`.
+  - Fase D: `HandleEstateChangedCommand`, `HandleEstateChangedUseCase`, `HandleEstateChangedService`, bean em `EventTypeConfig`.
+  - Fase E: `EstateChangedConsumer.java` com `@RabbitListener`, tradução de status e guarda DLQ para falhas.
+  - Fase F: 12 testes novos (5+3+4). Suite total: 134 testes, 0 falhas.
 
 ## O Que Foi Feito Recentemente
 
@@ -37,9 +47,11 @@ O `cal-service` possui:
 
 ## Próximos Passos
 
-1. **Governança contínua** — Executar primeiro ciclo de revisão quinzenal usando `docs/governanca-continua.md` e o template `retrospectiva-ciclo-template.md` após 15 dias ou 3 tarefas concluídas.
-2. **Evolução do projeto** — Próximas tarefas de produto: CI/CD pipeline, strategy de migration de schema (Flyway/Liquibase).
-3. **Documentação de agents** — Concluída em 2026-04-05: `docs/guia-agents.md` com catálogo, fluxos de exemplo e referência rápida.
+Nenhuma tarefa em andamento. Aguardando nova demanda.
+2. **TASK010 — Fase B**: Criar `EstateChangedMessage.java` (record) e `EstateStatus.java` (enum) em `infrastructure/messaging/`.
+3. **TASK010 — Fase C**: Adicionar `hide()` e `show()` na entidade `EventType`.
+4. **TASK010 — Fases D/E**: Implementar `HandleEstateChangedCommand`, `HandleEstateChangedUseCase`, `HandleEstateChangedService`, `EstateChangedConsumer`.
+5. **TASK010 — Fase F**: Testes unitários — `HandleEstateChangedServiceTest`, `EstateChangedConsumerTest`, adições em `EventTypeTest`.
 
 ## Decisões Ativas
 
