@@ -7,7 +7,6 @@ import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -25,7 +24,6 @@ public class HandleEstateChangedService implements HandleEstateChangedUseCase {
   }
 
   @Override
-  @Transactional
   public void execute(HandleEstateChangedCommand command) {
     Optional<EventType> optional = repository.findByEstateId(command.estateId());
     if (optional.isEmpty()) {

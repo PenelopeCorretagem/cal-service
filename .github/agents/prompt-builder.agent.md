@@ -61,7 +61,12 @@ description: '<descrição do prompt>'
 ```
 
 ### Skill (`.github/skills/<nome>/SKILL.md`)
-Sem frontmatter obrigatório — usar seção `## Contexto` no topo.
+```yaml
+---
+name: '<nome-da-skill>'
+description: '<descrição usada pelo Copilot para localizar e invocar a skill>'
+---
+```
 
 ## Boas Práticas
 

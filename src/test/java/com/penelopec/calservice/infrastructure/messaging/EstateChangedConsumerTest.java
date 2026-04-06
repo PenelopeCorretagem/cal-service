@@ -18,6 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -83,6 +86,21 @@ class EstateChangedConsumerTest {
       // Then
       verifyNoInteractions(useCase);
       verify(channel).basicAck(1L, false);
+    }
+
+    @Test
+    @DisplayName("Deve chamar basicNack (sem requeue) e não chamar basicAck quando useCase lança exceção")
+    void shouldCallBasicNack_whenUseCaseThrowsException() throws Exception {
+      // Given
+      EstateChangedMessage message = new EstateChangedMessage(99L, EstateStatus.ACTIVE, Instant.now());
+      doThrow(new RuntimeException("erro simulado")).when(useCase).execute(any());
+
+      // When
+      consumer.consume(message, channel, 2L);
+
+      // Then
+      verify(channel).basicNack(2L, false, false);
+      verify(channel, never()).basicAck(2L, false);
     }
   }
 }

@@ -17,6 +17,8 @@ spring:
     show-sql: true
 
   rabbitmq:
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     listener:
       simple:
         auto-startup: false
