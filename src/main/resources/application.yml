@@ -20,6 +20,12 @@ spring:
     show-sql: false
     open-in-view: false
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
 app:
   security:
     token:
@@ -44,6 +50,12 @@ scheduler:
   sync:
     cron: ${SYNC_CRON:0 */5 * * * *}
     enabled: ${SYNC_ENABLED:true}
+
+rabbitmq:
+  queues:
+    estate-changed: ${RABBITMQ_QUEUE_ESTATE_CHANGED:cal-service.estate-changed}
+  exchanges:
+    estate: ${RABBITMQ_EXCHANGE_ESTATE:estate.exchange}
 
 springdoc:
   swagger-ui:

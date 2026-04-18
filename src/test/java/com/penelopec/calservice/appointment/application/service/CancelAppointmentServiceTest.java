@@ -96,6 +96,26 @@ class CancelAppointmentServiceTest {
       verify(bookingGateway, never()).cancelBooking(any(), any());
       verify(repository, never()).save(any(Appointment.class));
     }
+
+    @Test
+    @DisplayName("Deve lancar excecao ao cancelar agendamento com status terminal")
+    void shouldThrowException_whenAppointmentHasTerminalStatus() {
+      // Given
+      Appointment appointment = createAppointment(1L, "booking-123", Status.CONCLUDED);
+      CancelAppointmentCommand command = new CancelAppointmentCommand(1L, "Motivo");
+      when(repository.findById(1L)).thenReturn(Optional.of(appointment));
+
+      // When
+      Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> service.execute(command));
+
+      // Then
+      assertThat(thrown)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONCLUDED");
+
+      verify(bookingGateway, never()).cancelBooking(any(), any());
+      verify(repository, never()).save(any(Appointment.class));
+    }
   }
 
   private Appointment createAppointment(Long id, String bookingUid, Status status) {

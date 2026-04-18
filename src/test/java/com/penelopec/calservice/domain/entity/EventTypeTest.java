@@ -136,4 +136,61 @@ class EventTypeTest {
       assertThat(eventType.isHidden()).isFalse();
     }
   }
+
+  @Nested
+  @DisplayName("hide e show")
+  class HideAndShow {
+
+    @Test
+    @DisplayName("hide() deve definir hidden=true independente do estado anterior")
+    void shouldSetHiddenTrue_whenCallingHide() {
+      // Given
+      EventType eventType = EventType.reconstitute(1L, "Visita", "visita", "Desc", 60, 120, false, 7L);
+
+      // When
+      eventType.hide();
+
+      // Then
+      assertThat(eventType.isHidden()).isTrue();
+    }
+
+    @Test
+    @DisplayName("hide() deve ser idempotente quando já oculto")
+    void shouldBeIdempotent_whenHidingAlreadyHiddenEventType() {
+      // Given
+      EventType eventType = EventType.reconstitute(1L, "Visita", "visita", "Desc", 60, 120, true, 7L);
+
+      // When
+      eventType.hide();
+
+      // Then
+      assertThat(eventType.isHidden()).isTrue();
+    }
+
+    @Test
+    @DisplayName("show() deve definir hidden=false independente do estado anterior")
+    void shouldSetHiddenFalse_whenCallingShow() {
+      // Given
+      EventType eventType = EventType.reconstitute(1L, "Visita", "visita", "Desc", 60, 120, true, 7L);
+
+      // When
+      eventType.show();
+
+      // Then
+      assertThat(eventType.isHidden()).isFalse();
+    }
+
+    @Test
+    @DisplayName("show() deve ser idempotente quando já visível")
+    void shouldBeIdempotent_whenShowingAlreadyVisibleEventType() {
+      // Given
+      EventType eventType = EventType.reconstitute(1L, "Visita", "visita", "Desc", 60, 120, false, 7L);
+
+      // When
+      eventType.show();
+
+      // Then
+      assertThat(eventType.isHidden()).isFalse();
+    }
+  }
 }
