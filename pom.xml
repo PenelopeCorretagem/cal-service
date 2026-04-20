@@ -30,7 +30,6 @@
     <java.version>21</java.version>
     <jacoco.version>0.8.12</jacoco.version>
     <mapstruct.version>1.5.5.Final</mapstruct.version>
-    <jwt.version>4.4.0</jwt.version>
     <springdoc.version>2.7.0</springdoc.version>
     <jackson2.core.version>2.21.1</jackson2.core.version>
     <jackson3.core.version>3.1.0</jackson3.core.version>
@@ -80,6 +79,18 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-amqp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-flyway</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-mysql</artifactId>
     </dependency>
 
     <dependency>
@@ -143,11 +154,6 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>${springdoc.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.auth0</groupId>
-      <artifactId>java-jwt</artifactId>
-      <version>${jwt.version}</version>
     </dependency>
   </dependencies>
 

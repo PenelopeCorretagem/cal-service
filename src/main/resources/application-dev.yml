@@ -16,9 +16,12 @@ spring:
       ddl-auto: create-drop
     show-sql: true
 
+  flyway:
+    enabled: false
+
   rabbitmq:
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    username: ${RABBITMQ_DEFAULT_USER:guest}
+    password: ${RABBITMQ_DEFAULT_PASS:guest}
     listener:
       simple:
         auto-startup: false

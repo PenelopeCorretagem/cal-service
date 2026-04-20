@@ -23,13 +23,10 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
+    username: ${RABBITMQ_DEFAULT_USER}
+    password: ${RABBITMQ_DEFAULT_PASS}
 
 app:
-  security:
-    token:
-      secret: ${JWT_API_KEY}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080}
 
@@ -45,6 +42,9 @@ monolith:
     base-url: ${MONOLITH_BASE_URL:http://localhost:8081}
     token: ${MONOLITH_API_TOKEN:}
     estates-path: ${MONOLITH_ESTATES_PATH:/api/empreendimentos}
+
+auth-service:
+  base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:9000/api}
 
 scheduler:
   sync:
