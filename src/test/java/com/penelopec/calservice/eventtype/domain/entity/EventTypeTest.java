@@ -1,6 +1,8 @@
-package com.penelopec.calservice.domain.entity;
+package com.penelopec.calservice.eventtype.domain.entity;
 
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,16 +36,16 @@ class EventTypeTest {
     @DisplayName("Deve falhar quando título for inválido")
     void shouldFailWhenTitleIsInvalid() {
       assertThatThrownBy(() -> EventType.createNew(" ", "Desc", 60, 120, false, 1L))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Título do EventType não pode ser vazio");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.INVALID_TITLE));
     }
 
     @Test
     @DisplayName("Deve falhar quando estateId for nulo")
     void shouldFailWhenEstateIdIsNull() {
       assertThatThrownBy(() -> EventType.createNew("Visita", "Desc", 60, 120, false, null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("ID do imóvel é obrigatório");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.ESTATE_ID_REQUIRED));
     }
   }
 
@@ -71,18 +73,18 @@ class EventTypeTest {
       EventType eventType = EventType.createNew("Visita", "Desc", 60, 120, false, 10L);
 
       assertThatThrownBy(() -> eventType.assignExternalId(0L))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("ID externo inválido");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.INVALID_EXTERNAL_ID));
     }
 
     @Test
-    @DisplayName("Deve falhar ao atribuir ID externo quando já existir ID")
+    @DisplayName("Deve falhar ao atribuir ID externo quando j\u00e1 existir ID")
     void shouldFailWhenExternalIdAlreadyExists() {
       EventType eventType = EventType.reconstitute(9L, "Visita", "visita", "Desc", 60, 120, false, 10L);
 
       assertThatThrownBy(() -> eventType.assignExternalId(100L))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("já possui ID atribuído");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.INVALID_EXTERNAL_ID));
     }
   }
 
@@ -110,18 +112,18 @@ class EventTypeTest {
       EventType eventType = EventType.reconstitute(1L, "Visita", "visita", "Desc", 60, 120, false, 7L);
 
       assertThatThrownBy(() -> eventType.updateLengthInMinutes(0))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Duração deve ser maior que zero");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.INVALID_DURATION));
     }
 
     @Test
-    @DisplayName("Deve falhar ao atualizar antecedência com valor negativo")
+    @DisplayName("Deve falhar ao atualizar anteced\u00eancia com valor negativo")
     void shouldFailWhenUpdatingNegativeBookingNotice() {
       EventType eventType = EventType.reconstitute(1L, "Visita", "visita", "Desc", 60, 120, false, 7L);
 
       assertThatThrownBy(() -> eventType.updateMinimumBookingNotice(-1))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Antecedência mínima não pode ser negativa");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.INVALID_BOOKING_NOTICE));
     }
 
     @Test

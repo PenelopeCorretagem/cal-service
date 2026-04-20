@@ -1,10 +1,13 @@
-package com.penelopec.calservice.application.service;
+package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.command.HandleEstateChangedCommand;
 import com.penelopec.calservice.eventtype.application.service.HandleEstateChangedService;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import com.penelopec.calservice.shared.validation.CommandValidator;
+import com.penelopec.calservice.shared.validation.ValidationResult;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,8 +33,16 @@ class HandleEstateChangedServiceTest {
   @Mock
   private CalComEventTypeGateway calComGateway;
 
+  @Mock
+  private CommandValidator<HandleEstateChangedCommand> validator;
+
   @InjectMocks
   private HandleEstateChangedService service;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(validator.validate(any())).thenReturn(new ValidationResult());
+  }
 
   @Nested
   @DisplayName("execute")

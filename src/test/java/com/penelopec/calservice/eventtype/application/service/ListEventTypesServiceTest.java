@@ -1,4 +1,4 @@
-package com.penelopec.calservice.application.service;
+package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
 import com.penelopec.calservice.eventtype.application.service.ListEventTypesService;

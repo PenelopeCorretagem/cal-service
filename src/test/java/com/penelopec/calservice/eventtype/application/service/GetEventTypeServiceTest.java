@@ -1,11 +1,12 @@
-package com.penelopec.calservice.application.service;
+package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
 import com.penelopec.calservice.eventtype.application.service.GetEventTypeService;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeNotFoundException;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,8 +46,8 @@ class GetEventTypeServiceTest {
 
       // When / Then
       assertThatThrownBy(() -> service.execute(eventTypeId))
-        .isInstanceOf(EventTypeNotFoundException.class)
-        .hasMessageContaining("EventType não encontrado no Cal.com");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.NOT_FOUND));
     }
 
     @Test

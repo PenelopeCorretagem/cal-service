@@ -1,4 +1,4 @@
-package com.penelopec.calservice.application.service;
+package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.service.DeleteEventTypeService;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;

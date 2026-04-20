@@ -1,12 +1,16 @@
-package com.penelopec.calservice.application.service;
+package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.command.UpdateEventTypeCommand;
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
 import com.penelopec.calservice.eventtype.application.service.ChangeEventTypeService;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeNotFoundException;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import com.penelopec.calservice.shared.error.core.DomainException;
+import com.penelopec.calservice.shared.validation.CommandValidator;
+import com.penelopec.calservice.shared.validation.ValidationResult;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -32,15 +37,23 @@ class UpdateEventTypeServiceTest {
   @Mock
   private EventTypeRepository eventTypeRepository;
 
+  @Mock
+  private CommandValidator<UpdateEventTypeCommand> validator;
+
   @InjectMocks
   private ChangeEventTypeService service;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(validator.validate(any())).thenReturn(new ValidationResult());
+  }
 
   @Nested
   @DisplayName("execute")
   class Execute {
 
     @Test
-    @DisplayName("Deve lançar exceção quando event type não existir")
+    @DisplayName("Deve lan\u00e7ar exce\u00e7\u00e3o quando event type n\u00e3o existir")
     void shouldThrowWhenEventTypeDoesNotExist() {
       // Given
       UpdateEventTypeCommand command = new UpdateEventTypeCommand(99L, "Novo", "Desc", 30, 60);
@@ -48,8 +61,8 @@ class UpdateEventTypeServiceTest {
 
       // When / Then
       assertThatThrownBy(() -> service.execute(command))
-        .isInstanceOf(EventTypeNotFoundException.class)
-        .hasMessageContaining("EventType não encontrado");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.NOT_FOUND));
 
       verifyNoInteractions(calComGateway);
     }
@@ -131,7 +144,7 @@ class UpdateEventTypeServiceTest {
     }
 
     @Test
-    @DisplayName("Deve falhar quando duração for inválida")
+    @DisplayName("Deve falhar quando dura\u00e7\u00e3o for inv\u00e1lida")
     void shouldFailWhenLengthIsInvalid() {
       // Given
       Long eventTypeId = 70L;
@@ -151,8 +164,8 @@ class UpdateEventTypeServiceTest {
 
       // When / Then
       assertThatThrownBy(() -> service.execute(command))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Duração deve ser maior que zero");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(EventTypeError.INVALID_DURATION));
 
       verifyNoInteractions(calComGateway);
     }

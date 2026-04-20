@@ -1,4 +1,4 @@
-package com.penelopec.calservice.infrastructure.messaging;
+package com.penelopec.calservice.eventtype.infrastructure.messaging;
 
 import com.penelopec.calservice.eventtype.application.command.HandleEstateChangedCommand;
 import com.penelopec.calservice.eventtype.application.port.in.HandleEstateChangedUseCase;
@@ -6,12 +6,12 @@ import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateChanged
 import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateChangedMessage;
 import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateStatus;
 import com.rabbitmq.client.Channel;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,8 +33,12 @@ class EstateChangedConsumerTest {
   @Mock
   private Channel channel;
 
-  @InjectMocks
   private EstateChangedConsumer consumer;
+
+  @BeforeEach
+  void setUp() {
+    consumer = new EstateChangedConsumer(useCase);
+  }
 
   @Nested
   @DisplayName("consume")

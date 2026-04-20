@@ -1,9 +1,9 @@
-package com.penelopec.calservice.application.service;
+package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.service.SyncEventTypesService;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
-import com.penelopec.calservice.eventtype.domain.gateway.EstateData;
+import com.penelopec.calservice.eventtype.domain.valueobject.EstateData;
 import com.penelopec.calservice.eventtype.domain.gateway.EstateGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import org.junit.jupiter.api.DisplayName;

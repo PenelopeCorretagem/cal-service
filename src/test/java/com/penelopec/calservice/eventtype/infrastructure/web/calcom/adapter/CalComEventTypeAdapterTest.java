@@ -1,14 +1,17 @@
-package com.penelopec.calservice.infrastructure.calcom.adapter;
+package com.penelopec.calservice.eventtype.infrastructure.web.calcom.adapter;
 
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeCreationException;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeDeletionException;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeNotFoundException;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.adapter.CalComEventTypeAdapter;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComApiResponse;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComEventTypeRequest;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComEventTypeResponse;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComUser;
+import com.penelopec.calservice.shared.error.core.GatewayException;
+import com.penelopec.calservice.shared.http.exception.RemoteNotFoundException;
+import com.penelopec.calservice.shared.http.exception.RemoteServiceException;
+import com.penelopec.calservice.shared.http.executor.RestExecutor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -30,12 +32,15 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,8 +49,54 @@ class CalComEventTypeAdapterTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private RestClient restClient;
 
+  @Mock
+  private RestExecutor restExecutor;
+
   @InjectMocks
   private CalComEventTypeAdapter adapter;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(restExecutor.execute(anyString(), any())).thenAnswer(inv -> {
+      try {
+        Object result = inv.<Supplier<?>>getArgument(1).get();
+        if (result == null) throw new RemoteServiceException("CALCOM", "Resposta nula inesperada", null);
+        return result;
+      } catch (RemoteServiceException e) {
+        throw e;
+      } catch (RestClientResponseException e) {
+        if (e.getStatusCode().value() == 404) throw new RemoteNotFoundException("CALCOM", e.getMessage());
+        throw new RemoteServiceException("CALCOM", e.getStatusCode().value(), e.getMessage());
+      } catch (Exception e) {
+        throw new RemoteServiceException("CALCOM", "Erro inesperado", e);
+      }
+    });
+    lenient().when(restExecutor.executeOrNull(anyString(), any())).thenAnswer(inv -> {
+      try {
+        return inv.<Supplier<?>>getArgument(1).get();
+      } catch (RemoteServiceException e) {
+        throw e;
+      } catch (RestClientResponseException e) {
+        if (e.getStatusCode().value() == 404) throw new RemoteNotFoundException("CALCOM", e.getMessage());
+        throw new RemoteServiceException("CALCOM", e.getStatusCode().value(), e.getMessage());
+      } catch (Exception e) {
+        throw new RemoteServiceException("CALCOM", "Erro inesperado", e);
+      }
+    });
+    lenient().doAnswer(inv -> {
+      try {
+        inv.<Runnable>getArgument(1).run();
+      } catch (RemoteServiceException e) {
+        throw e;
+      } catch (RestClientResponseException e) {
+        if (e.getStatusCode().value() == 404) throw new RemoteNotFoundException("CALCOM", e.getMessage());
+        throw new RemoteServiceException("CALCOM", e.getStatusCode().value(), e.getMessage());
+      } catch (Exception e) {
+        throw new RemoteServiceException("CALCOM", "Erro inesperado", e);
+      }
+      return null;
+    }).when(restExecutor).executeVoid(anyString(), any());
+  }
 
   @Nested
   @DisplayName("create")
@@ -62,7 +113,6 @@ class CalComEventTypeAdapterTest {
         .uri("/v2/event-types")
         .body(any(CalComEventTypeRequest.class))
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenReturn(new CalComApiResponse<>("success", response, null));
 
@@ -85,14 +135,13 @@ class CalComEventTypeAdapterTest {
         .uri("/v2/event-types")
         .body(any(CalComEventTypeRequest.class))
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenReturn(new CalComApiResponse<>("success", null, null));
 
       // When / Then
       assertThatThrownBy(() -> adapter.create(eventType, false))
-        .isInstanceOf(EventTypeCreationException.class)
-        .hasMessageContaining("Resposta nula do Cal.com ao criar EventType");
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.CREATION_FAILED));
     }
 
     @Test
@@ -106,15 +155,14 @@ class CalComEventTypeAdapterTest {
         .uri("/v2/event-types")
         .body(any(CalComEventTypeRequest.class))
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenThrow(httpException);
 
       // When / Then
       assertThatThrownBy(() -> adapter.create(eventType, false))
-        .isInstanceOf(EventTypeCreationException.class)
-        .hasMessageContaining("Falha na comunicação com Cal.com ao criar EventType")
-        .hasCause(httpException);
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.CREATION_FAILED))
+        .hasCauseInstanceOf(RemoteServiceException.class);
     }
 
     @Test
@@ -127,14 +175,13 @@ class CalComEventTypeAdapterTest {
         .uri("/v2/event-types")
         .body(any(CalComEventTypeRequest.class))
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenThrow(new RuntimeException("boom"));
 
       // When / Then
       assertThatThrownBy(() -> adapter.create(eventType, false))
-        .isInstanceOf(EventTypeCreationException.class)
-        .hasMessageContaining("Erro inesperado ao criar EventType no Cal.com")
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.CREATION_FAILED))
         .hasCauseInstanceOf(RuntimeException.class);
     }
   }
@@ -154,7 +201,6 @@ class CalComEventTypeAdapterTest {
         .uri("/v2/event-types/{id}", 99L)
         .body(any(CalComEventTypeRequest.class))
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenReturn(new CalComApiResponse<>("success", response, null));
 
@@ -177,14 +223,13 @@ class CalComEventTypeAdapterTest {
         .uri("/v2/event-types/{id}", 45L)
         .body(any(CalComEventTypeRequest.class))
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenReturn(new CalComApiResponse<>("success", null, null));
 
       // When / Then
       assertThatThrownBy(() -> adapter.update(eventType, false))
-        .isInstanceOf(EventTypeCreationException.class)
-        .hasMessageContaining("Resposta nula do Cal.com ao atualizar EventType 45");
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.UPDATE_FAILED));
     }
   }
 
@@ -199,14 +244,13 @@ class CalComEventTypeAdapterTest {
       when(restClient.delete()
         .uri("/v2/event-types/{id}", 81L)
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .toBodilessEntity())
         .thenThrow(new RuntimeException("timeout"));
 
       // When / Then
       assertThatThrownBy(() -> adapter.delete(81L))
-        .isInstanceOf(EventTypeDeletionException.class)
-        .hasMessageContaining("Falha ao deletar EventType 81")
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.DELETION_FAILED))
         .hasCauseInstanceOf(RuntimeException.class);
     }
 
@@ -214,19 +258,18 @@ class CalComEventTypeAdapterTest {
     @DisplayName("Deve propagar EventTypeDeletionException sem encapsular novamente")
     void shouldRethrowEventTypeDeletionException() {
       // Given
-      EventTypeDeletionException exception = new EventTypeDeletionException("erro de negócio");
+      GatewayException exception = new GatewayException(EventTypeError.DELETION_FAILED);
 
       when(restClient.delete()
         .uri("/v2/event-types/{id}", 44L)
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .toBodilessEntity())
         .thenThrow(exception);
 
       // When / Then
       assertThatThrownBy(() -> adapter.delete(44L))
-        .isInstanceOf(EventTypeDeletionException.class)
-        .hasMessageContaining("erro de negócio");
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.DELETION_FAILED));
     }
   }
 
@@ -244,7 +287,6 @@ class CalComEventTypeAdapterTest {
       when(restClient.get()
         .uri("/v2/event-types/{id}", eventTypeId)
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenReturn(new CalComApiResponse<>("success", response, null));
 
@@ -265,9 +307,8 @@ class CalComEventTypeAdapterTest {
       when(restClient.get()
         .uri("/v2/event-types/{id}", eventTypeId)
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
-        .thenThrow(new EventTypeNotFoundException("não encontrado"));
+        .thenThrow(httpException(HttpStatus.NOT_FOUND, "Not Found"));
 
       // When
       Optional<EventType> result = adapter.findById(eventTypeId);
@@ -285,46 +326,34 @@ class CalComEventTypeAdapterTest {
       when(restClient.get()
         .uri("/v2/event-types/{id}", eventTypeId)
         .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenThrow(httpException(HttpStatus.INTERNAL_SERVER_ERROR, "Server Error"));
 
       // When / Then
       assertThatThrownBy(() -> adapter.findById(eventTypeId))
-        .isInstanceOf(EventTypeNotFoundException.class)
-        .hasMessageContaining("Falha na comunicação com Cal.com ao buscar EventType 13");
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.INTEGRATION_UNAVAILABLE));
     }
 
     @Test
-    @DisplayName("Deve cobrir os dois ramos do predicate de status no findById")
+    @DisplayName("Deve retornar Optional vazio para 404 e GatewayException para 5xx")
     void shouldEvaluateBothBranchesOfFindByIdStatusPredicate() {
       // Given
       Long eventTypeId = 21L;
-      CalComEventTypeResponse response = responseOf(21L, "Visita", "visita", 60, "Desc", false, 120);
 
-      when(restClient.get()
-        .uri("/v2/event-types/{id}", eventTypeId)
-        .retrieve()
-        .onStatus(ArgumentMatchers.any(), any(RestClient.ResponseSpec.ErrorHandler.class))
-        .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
-        .thenReturn(new CalComApiResponse<>("success", response, null));
+      // 404 deve retornar Optional.empty()
+      doThrow(new RemoteNotFoundException("CALCOM", "Not Found"))
+        .when(restExecutor).executeOrNull(anyString(), any());
 
-      // When
-      adapter.findById(eventTypeId);
+      assertThat(adapter.findById(eventTypeId)).isEmpty();
 
-      // Then
-      @SuppressWarnings("unchecked")
-      ArgumentCaptor<Predicate<HttpStatusCode>> statusCaptor =
-        (ArgumentCaptor<Predicate<HttpStatusCode>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(Predicate.class);
+      // 5xx deve lançar GatewayException
+      doThrow(new RemoteServiceException("CALCOM", 500, "Server Error"))
+        .when(restExecutor).executeOrNull(anyString(), any());
 
-      verify(restClient.get()
-        .uri("/v2/event-types/{id}", eventTypeId)
-        .retrieve())
-        .onStatus(statusCaptor.capture(), any(RestClient.ResponseSpec.ErrorHandler.class));
-
-      Predicate<HttpStatusCode> predicate = statusCaptor.getValue();
-      assertThat(predicate.test(HttpStatus.NOT_FOUND)).isTrue();
-      assertThat(predicate.test(HttpStatus.INTERNAL_SERVER_ERROR)).isFalse();
+      assertThatThrownBy(() -> adapter.findById(eventTypeId))
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.INTEGRATION_UNAVAILABLE));
     }
   }
 
@@ -397,8 +426,8 @@ class CalComEventTypeAdapterTest {
 
       // When / Then
       assertThatThrownBy(() -> adapter.listAll())
-        .isInstanceOf(EventTypeCreationException.class)
-        .hasMessageContaining("Não foi possível obter o usuário autenticado do Cal.com");
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.EXTERNAL_USER_FETCH_FAILED));
     }
 
     @Test
@@ -419,9 +448,9 @@ class CalComEventTypeAdapterTest {
 
       // When / Then
       assertThatThrownBy(() -> adapter.listAll())
-        .isInstanceOf(EventTypeCreationException.class)
-        .hasMessageContaining("Falha na comunicação com Cal.com ao listar EventTypes")
-        .hasCauseInstanceOf(RestClientResponseException.class);
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.INTEGRATION_UNAVAILABLE))
+        .hasCauseInstanceOf(RemoteServiceException.class);
     }
 
     @Test
@@ -432,13 +461,19 @@ class CalComEventTypeAdapterTest {
         .uri("/v2/me")
         .retrieve()
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComUser>>>any()))
-        .thenReturn(new CalComApiResponse<>("success", null, null));
+        .thenReturn(new CalComApiResponse<>("success", new CalComUser(10L, "kenner", "k@cal.com", "Kenner"), null));
+
+      when(restClient.get()
+        .uri(ArgumentMatchers.<Function<UriBuilder, URI>>any())
+        .retrieve()
+        .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<List<CalComEventTypeResponse>>>>any()))
+        .thenThrow(new RuntimeException("unexpected error"));
 
       // When / Then
       assertThatThrownBy(() -> adapter.listAll())
-        .isInstanceOf(EventTypeCreationException.class)
-        .hasMessageContaining("Erro inesperado ao listar EventTypes no Cal.com")
-        .hasCauseInstanceOf(NullPointerException.class);
+        .isInstanceOf(GatewayException.class)
+        .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.INTEGRATION_UNAVAILABLE))
+        .hasCauseInstanceOf(RemoteServiceException.class);
     }
   }
 

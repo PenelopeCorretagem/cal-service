@@ -1,4 +1,4 @@
-package com.penelopec.calservice.infrastructure.persistence.adapter;
+package com.penelopec.calservice.eventtype.infrastructure.persistence.adapter;
 
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.infrastructure.persistence.adapter.EventTypeRepositoryAdapter;

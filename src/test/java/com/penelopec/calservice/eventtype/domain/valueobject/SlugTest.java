@@ -1,4 +1,4 @@
-package com.penelopec.calservice.domain.valueobject;
+package com.penelopec.calservice.eventtype.domain.valueobject;
 
 import com.penelopec.calservice.eventtype.domain.valueobject.Slug;
 import org.junit.jupiter.api.DisplayName;
