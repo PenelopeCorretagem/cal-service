@@ -1,13 +1,14 @@
 package com.penelopec.calservice.appointment.application.service;
 
-import com.penelopec.calservice.appointment.application.output.ListAppointmentsOutput;
+import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.validator.ListAppointmentsQueryValidator;
-import com.penelopec.calservice.appointment.domain.error.AppointmentValidationCode;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.appointment.domain.repository.PageResult;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
+import com.penelopec.calservice.shared.pagination.Page;
 import com.penelopec.calservice.shared.validation.ValidationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -54,13 +55,13 @@ class ListAppointmentsServiceTest {
         0, 2, 3, 2
       ));
 
-      ListAppointmentsOutput output = service.execute(query);
+      Page<AppointmentOutput> output = service.execute(query);
 
       assertThat(output.page()).isEqualTo(0);
       assertThat(output.size()).isEqualTo(2);
       assertThat(output.totalElements()).isEqualTo(3);
       assertThat(output.totalPages()).isEqualTo(2);
-      assertThat(output.appointments()).hasSize(2);
+      assertThat(output.content()).hasSize(2);
     }
 
     @Test
@@ -72,7 +73,7 @@ class ListAppointmentsServiceTest {
       when(repository.findByFilters(null, null, null, null, null, null, 0, 20))
         .thenReturn(new PageResult<>(List.of(createAppointment(1L)), 0, 20, 1, 1));
 
-      ListAppointmentsOutput output = service.execute(query);
+      Page<AppointmentOutput> output = service.execute(query);
 
       assertThat(output.page()).isEqualTo(0);
       assertThat(output.size()).isEqualTo(20);
@@ -93,7 +94,7 @@ class ListAppointmentsServiceTest {
           ValidationException ex = (ValidationException) throwable;
           assertThat(ex.getErrors()).anySatisfy(error -> {
             assertThat(error.field()).isEqualTo("page");
-            assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_PAGE_INVALID.code());
+            assertThat(error.code()).isEqualTo(AppointmentError.LIST_PAGE_INVALID.code());
           });
         });
       verifyNoInteractions(repository);
@@ -112,7 +113,7 @@ class ListAppointmentsServiceTest {
           ValidationException ex = (ValidationException) throwable;
           assertThat(ex.getErrors()).anySatisfy(error -> {
             assertThat(error.field()).isEqualTo("size");
-            assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_SIZE_INVALID.code());
+            assertThat(error.code()).isEqualTo(AppointmentError.LIST_SIZE_INVALID.code());
           });
         });
       verifyNoInteractions(repository);
@@ -131,7 +132,7 @@ class ListAppointmentsServiceTest {
           ValidationException ex = (ValidationException) throwable;
           assertThat(ex.getErrors()).anySatisfy(error -> {
             assertThat(error.field()).isEqualTo("status");
-            assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_STATUS_INVALID.code());
+            assertThat(error.code()).isEqualTo(AppointmentError.LIST_STATUS_INVALID.code());
           });
         });
       verifyNoInteractions(repository);

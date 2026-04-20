@@ -1,11 +1,11 @@
 package com.penelopec.calservice.appointment.infrastructure.controller;
 
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
-import com.penelopec.calservice.appointment.application.output.ListAppointmentsOutput;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CreateAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.RescheduleAppointmentRequest;
 import com.penelopec.calservice.shared.error.core.ApiErrorResponse;
+import com.penelopec.calservice.shared.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -212,12 +212,12 @@ public interface AppointmentControllerSwagger {
       description = "Lista paginada de agendamentos retornada com sucesso",
       content = @Content(
         mediaType = "application/json",
-        schema = @Schema(implementation = ListAppointmentsOutput.class),
+        schema = @Schema(implementation = Page.class),
         examples = @ExampleObject(
           name = "Lista paginada",
           value = """
             {
-              "appointments": [
+              "content": [
                 {
                   "id": 1,
                   "bookingUid": "bk_abc123",
@@ -250,7 +250,7 @@ public interface AppointmentControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })
-  ResponseEntity<ListAppointmentsOutput> listAll(
+  ResponseEntity<Page<AppointmentOutput>> listAll(
     @Parameter(description = "Filtra por cliente", example = "10") @RequestParam(required = false) Long clientId,
     @Parameter(description = "Filtra por corretor", example = "20") @RequestParam(required = false) Long estateAgentId,
     @Parameter(description = "Filtra por empreendimento (via tipo de evento)", example = "30") @RequestParam(required = false) Long estateId,

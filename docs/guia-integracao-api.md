@@ -591,7 +591,7 @@ Body (`AppointmentOutput`):
 
 ```json
 {
-  "appointments": [
+  "content": [
     {
       "id": 1,
       "bookingUid": "bk_abc123",

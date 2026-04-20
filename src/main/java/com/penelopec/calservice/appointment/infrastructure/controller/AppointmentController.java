@@ -6,12 +6,12 @@ import com.penelopec.calservice.appointment.application.command.ConcludeAppointm
 import com.penelopec.calservice.appointment.application.command.ConfirmAppointmentCommand;
 import com.penelopec.calservice.appointment.application.command.RescheduleAppointmentCommand;
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
-import com.penelopec.calservice.appointment.application.output.ListAppointmentsOutput;
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.usecase.*;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CreateAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.RescheduleAppointmentRequest;
+import com.penelopec.calservice.shared.pagination.Page;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -78,7 +78,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
 
   @Override
   @GetMapping
-  public ResponseEntity<ListAppointmentsOutput> listAll(
+  public ResponseEntity<Page<AppointmentOutput>> listAll(
     @RequestParam(required = false) Long clientId,
     @RequestParam(required = false) Long estateAgentId,
     @RequestParam(required = false) Long estateId,
@@ -99,7 +99,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
       size
     );
 
-    ListAppointmentsOutput output = listUseCase.execute(query);
+    Page<AppointmentOutput> output = listUseCase.execute(query);
     return ResponseEntity.ok(output);
   }
 

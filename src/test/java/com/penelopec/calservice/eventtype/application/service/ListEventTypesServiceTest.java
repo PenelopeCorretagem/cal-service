@@ -1,9 +1,9 @@
 package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
-import com.penelopec.calservice.eventtype.application.output.Page;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.shared.pagination.Page;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
