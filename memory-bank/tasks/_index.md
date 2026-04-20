@@ -10,8 +10,12 @@ _(nenhuma tarefa pendente)_
 
 ## Completed
 
+- [TASK015] Separar commits da refatoração de integração — alterações da branch organizadas em commits temáticos para revisão - Concluído em 2026-04-19
+- [TASK013] Testes de Contrato e Validators — suíte de validators criada e contrato HTTP do `GlobalExceptionHandler` fechado com cenário 405 - Concluído em 2026-04-20
+- [TASK012] Infraestrutura REST — hardening HTTP finalizado e exemplos OpenAPI alinhados ao contrato `ApiErrorResponse` - Concluído em 2026-04-19
+- [TASK014] Reestruturar packages de testes e shared — varredura semântica concluída; testes verdes em Java 21 (148/148) - Concluído em 2026-04-20
+- [TASK011] Framework de Erros e Validação — complemento pós-code review concluído; build global ainda bloqueado por erros preexistentes fora de escopo - Concluído em 2026-04-19
 - [TASK010] RabbitMQ Estate Changed Consumer — end-to-end implementado (15/15 subtarefas, 134 testes) - Concluído em 2026-04-05
-
 - [TASK009] Documentação de uso dos agents — guia-agents.md com fluxos de exemplo - Concluído em 2026-04-05
 - [TASK008] Ciclo de governança contínua — checklist quinzenal, template retro, processo convergência - Concluído em 2026-04-05
 - [TASK007] Camada de Prompts reutilizáveis — refinar-tarefa, criar-backlog-tarefa - Concluído em 2026-04-05

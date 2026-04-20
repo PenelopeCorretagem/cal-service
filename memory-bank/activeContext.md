@@ -1,61 +1,41 @@
 # Active Context — cal-service
 
-**Última atualização**: 2026-04-05
+**Última atualização**: 2026-04-20
 
 ## Foco Atual
 
-Nenhuma tarefa em andamento. Aguardando nova demanda.
+- **TASK015 (Completed)**: alterações da branch `feat/refatoracao-integracao-cal-service` separadas em commits temáticos para revisão.
+- **TASK011 (Completed)**: Complemento pós-code-review concluído em `shared/error`, `shared/http`, `SecurityFilter`, testes de contrato e documentação.
+- **TASK014 (Completed)**: Reestruturação semântica de packages de testes `eventtype` e varredura do módulo `shared` finalizada.
+- **TASK012 (Completed)**: Hardening de infraestrutura REST finalizado com exemplos/respostas OpenAPI alinhados ao contrato `ApiErrorResponse`.
+- **TASK013 (Completed)**: Suíte de validators criada e contrato HTTP do `GlobalExceptionHandler` finalizado com cenário 405.
+
+**Próximo passo imediato**: retomar backlog técnico de média prioridade (CI/CD e estratégia de migrations).
 
 ## O Que Foi Feito Recentemente
 
-- **TASK010 concluída (2026-04-05)**: Consumer RabbitMQ implementado end-to-end.
-  - Fase A: dependência AMQP + configuração YAML + `RabbitMQConfig.java` / `RabbitMQProperties.java`.
-  - Fase B: `EstateChangedMessage.java` (record) + `EstateStatus.java` (enum).
-  - Fase C: `hide()` e `show()` idempotentes na entidade `EventType`.
-  - Fase D: `HandleEstateChangedCommand`, `HandleEstateChangedUseCase`, `HandleEstateChangedService`, bean em `EventTypeConfig`.
-  - Fase E: `EstateChangedConsumer.java` com `@RabbitListener`, tradução de status e guarda DLQ para falhas.
-  - Fase F: 12 testes novos (5+3+4). Suite total: 134 testes, 0 falhas.
-- **TASK008 concluída (2026-04-05)**: ciclo de governança contínua formalizado (`docs/governanca-continua.md`, template de retrospectiva quinzenal). Fase 4 do workspace Copilot concluída.
-- **TASK007 concluída (2026-04-05)**: prompts reutilizáveis criados (`refinar-tarefa.prompt.md`, `criar-backlog-tarefa.prompt.md`).
-- **TASK006 concluída (2026-04-05)**: skill `task-checkpoint-memory` criada em `.github/skills/`.
-- **TASK005 concluída (2026-04-05)**: agents especializados criados (`code-reviewer`, `test-designer`, `architect`).
-- **TASK004 concluída (2026-04-05)**: cobertura de testes do `appointment` completa (122 testes, BUILD SUCCESS).
-- **Fase 3 concluída (2026-04-05)**: instructions por domínio em `.github/instructions/`.
-- **Fases 0–2 concluídas (2026-04-05)**: memory bank, governança base e agents base.
-
-## Estado Atual do Projeto
-
-O `cal-service` possui:
-- **Bounded context `eventtype`**: Totalmente implementado. CRUD completo, toggle de visibilidade, sync com Cal.com, consumer RabbitMQ para mudança de status de imóvel, testes unitários passando.
-- **Bounded context `appointment`**: Completamente implementado e com cobertura de testes completa. Inclui domínio, aplicação e infraestrutura.
-- **Workspace Copilot** (meta-projeto): Fases 0–4 concluídas. 6 agents especializados, instructions por domínio, prompts reutilizáveis, skill de checkpoint e processo de governança contínua.
-
-## Próximos Passos
-
-Nenhuma tarefa em andamento. Aguardando nova demanda.
+- Refatoração da branch foi separada em commits por tema (auth/infra, core errors, REST/OpenAPI, testes e documentação) para facilitar code review.
+- Concluídos os itens TASK011.6, TASK011.7, TASK011.8 e TASK011.9.
+- `GlobalExceptionHandler` e `ErrorHttpStatusMapping` endurecidos com null-safety/fallbacks e proteção contra sobrescrita silenciosa.
+- Criada `RestClientBuilderFactory` e aplicada nos configs de `auth`, `eventtype` e `appointment`.
+- `LoggingInterceptor` atualizado para DEBUG, duração de chamada e mascaramento de query params sensíveis.
+- `SecurityFilter` atualizado para comportamento resiliente sem vazamento de token.
+- Testes adicionados: `GlobalExceptionHandlerTest`, `ErrorHttpStatusMappingTest`, `SecurityFilterTest`, `LoggingInterceptorTest`.
+- Docs atualizados: `shared/error/doc.md` e `shared/http/doc.md`.
+- Testes de `eventtype` foram reorganizados para packages/caminhos do bounded context (`eventtype.*`) preservando semântica.
+- TASK012.3 concluída: `EventTypeControllerSwagger` e `AppointmentControllerSwagger` atualizados com exemplos `code/severity/violations` e status documentados alinhados ao mapeamento atual.
+- TASK013 concluída com criação de 7 novos testes de validator em `eventtype`/`appointment` e ajuste de `GlobalExceptionHandlerTest` para `405 Method Not Allowed`.
+- `./mvnw compile` e `./mvnw test` executados com Java 21 após TASK013 com sucesso (suite completa verde).
 
 ## Decisões Ativas
 
-- A senha de `.env.example` não deve conter valores reais (apenas templates).
-- O scheduler de sync é desabilitado em `dev` para não poluir logs.
-- MapStruct é usado para mapeamento JPA ↔ Domain ↔ Output (sem conversão manual).
-- `reconstitute()` e `createNew()` são os únicos factory methods aceitos nas entidades de domínio.
+- Exceptions por camada permanecem mandatórias (`DomainException`, `GatewayException`, `ApplicationException`, `ValidationException`).
+- Mapeamento HTTP é centralizado em registry/registrars (`shared/error/http`) sem acoplamento do domínio a HTTP.
+- `ValidationCode` permanece apenas como compatibilidade; novos fluxos usam `ErrorContract` diretamente.
+- `reconstitute()` e `createNew()` seguem como únicos factory methods válidos em entidades de domínio.
 
 ## Contexto de Integração
 
-- Cal.com API: integração ativa; adaptadores `CalComEventTypeAdapter` e `CalComBookingAdapter`.
-- Monolith: integração via `MonolithEstateAdapter` para buscar empreendimentos.
-- Ambas integrações acessam sistemas externos configurados por variáveis de ambiente.
-
-## Decisões Ativas
-
-- A senha de `.env.example` não deve conter valores reais (apenas templates).
-- O scheduler de sync é desabilitado em `dev` para não poluir logs.
-- MapStruct é usado para mapeamento JPA ↔ Domain ↔ Output (sem conversão manual).
-- `reconstitute()` e `createNew()` são os únicos factory methods aceitos nas entidades de domínio.
-
-## Contexto de Integração
-
-- Cal.com API: integração ativa; adaptadores `CalComEventTypeAdapter` e `CalComBookingAdapter`.
-- Monolith: integração via `MonolithEstateAdapter` para buscar empreendimentos.
-- Ambas integrações acessam sistemas externos configurados por variáveis de ambiente.
+- Cal.com via adapters `CalComEventTypeAdapter` e `CalComBookingAdapter`.
+- Monolith via `MonolithEstateAdapter`.
+- Auth service via `AuthServiceAdapter` e `ValidateTokenUseCase` no filtro de segurança.

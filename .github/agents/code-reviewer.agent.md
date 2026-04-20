@@ -1,7 +1,7 @@
 ---
 description: 'Agente de revisão de código para o cal-service: avalia resultado após implementação, verificando Clean Architecture, OWASP Top 10 e convenções do projeto. Produz tabela de findings com severidade.'
 model: Claude Sonnet 4.6 (copilot)
-tools: [read, search, problems]
+tools: [read, search, read/problems]
 name: 'Code Reviewer'
 ---
 
