@@ -10,24 +10,29 @@ import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.BookingResult;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.CreateBookingRequest;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
+import com.penelopec.calservice.shared.validation.CommandValidator;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 public class CreateAppointmentService implements CreateAppointmentUseCase {
 
   private final CalComBookingGateway bookingGateway;
   private final AppointmentRepository repository;
+  private final CommandValidator<AppointmentCommand> validator;
 
   public CreateAppointmentService(CalComBookingGateway bookingGateway,
-                                  AppointmentRepository repository) {
+                                  AppointmentRepository repository,
+                                  CommandValidator<AppointmentCommand> validator) {
     this.bookingGateway = bookingGateway;
     this.repository = repository;
+    this.validator = validator;
   }
 
   @Override
   public AppointmentOutput execute(AppointmentCommand command) {
+    validator.validateAndThrow(command);
+
     LocalDateTime start = AppointmentDateTimeParser.parseRequired(command.startDateTime(), "startDateTime");
     LocalDateTime end = AppointmentDateTimeParser.parseRequired(command.endDateTime(), "endDateTime");
 
@@ -35,9 +40,11 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
       command.eventTypeId(),
       command.clientId(),
       command.estateAgentId(),
-      command.estateId(),
       start,
-      end
+      end,
+      command.attendeeName(),
+      command.attendeeEmail(),
+      command.notes()
     );
 
     BookingResult result = bookingGateway.createBooking(new CreateBookingRequest(

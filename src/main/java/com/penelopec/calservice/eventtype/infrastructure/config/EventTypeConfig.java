@@ -2,6 +2,9 @@ package com.penelopec.calservice.eventtype.infrastructure.config;
 
 import com.penelopec.calservice.eventtype.application.port.in.*;
 import com.penelopec.calservice.eventtype.application.service.*;
+import com.penelopec.calservice.eventtype.application.validator.CreateEventTypeCommandValidator;
+import com.penelopec.calservice.eventtype.application.validator.HandleEstateChangedCommandValidator;
+import com.penelopec.calservice.eventtype.application.validator.UpdateEventTypeCommandValidator;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import com.penelopec.calservice.eventtype.domain.gateway.EstateGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
@@ -20,13 +23,13 @@ public class EventTypeConfig {
   @Bean
   public CreateEventTypeUseCase createEventTypeUseCase(CalComEventTypeGateway calComGateway,
                                                        EventTypeRepository repository) {
-    return new CreateEventTypeService(calComGateway, repository);
+    return new CreateEventTypeService(calComGateway, repository, new CreateEventTypeCommandValidator());
   }
 
   @Bean
   public ChangeEventTypeUseCase updateEventTypeUseCase(CalComEventTypeGateway calComGateway,
                                                        EventTypeRepository repository) {
-    return new ChangeEventTypeService(calComGateway, repository);
+    return new ChangeEventTypeService(calComGateway, repository, new UpdateEventTypeCommandValidator());
   }
 
   @Bean
@@ -62,6 +65,6 @@ public class EventTypeConfig {
   @Bean
   public HandleEstateChangedUseCase handleEstateChangedUseCase(EventTypeRepository repository,
                                                                CalComEventTypeGateway calComGateway) {
-    return new HandleEstateChangedService(repository, calComGateway);
+    return new HandleEstateChangedService(repository, calComGateway, new HandleEstateChangedCommandValidator());
   }
 }

@@ -6,8 +6,7 @@ import com.penelopec.calservice.appointment.infrastructure.persistence.entity.Ap
 
 public class AppointmentJpaMapper {
 
-  private AppointmentJpaMapper() {
-  }
+  private AppointmentJpaMapper() {}
 
   public static AppointmentJpaEntity toJpaEntity(Appointment appointment) {
     return new AppointmentJpaEntity(
@@ -16,11 +15,13 @@ public class AppointmentJpaMapper {
       appointment.getEventTypeId(),
       appointment.getClientId(),
       appointment.getEstateAgentId(),
-      appointment.getEstateId(),
-      appointment.getDurationMinutes(),
       appointment.getStatus().name(),
       appointment.getStartDateTime(),
       appointment.getEndDateTime(),
+      appointment.getAttendeeName(),
+      appointment.getAttendeeEmail(),
+      appointment.getNotes(),
+      appointment.getReason(),
       appointment.getCreatedAt(),
       appointment.getUpdatedAt()
     );
@@ -33,11 +34,13 @@ public class AppointmentJpaMapper {
       entity.getEventTypeId(),
       entity.getClientId(),
       entity.getEstateAgentId(),
-      entity.getEstateId(),
-      entity.getDurationMinutes(),
       Status.valueOf(entity.getStatus()),
       entity.getStartDateTime(),
       entity.getEndDateTime(),
+      entity.getAttendeeName(),
+      entity.getAttendeeEmail(),
+      entity.getNotes(),
+      entity.getReason(),
       entity.getCreatedAt(),
       entity.getUpdatedAt()
     );

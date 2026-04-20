@@ -1,4 +1,4 @@
-package com.penelopec.calservice.eventtype.domain.gateway;
+package com.penelopec.calservice.eventtype.domain.valueobject;
 
 public record EstateData(
   Long id,

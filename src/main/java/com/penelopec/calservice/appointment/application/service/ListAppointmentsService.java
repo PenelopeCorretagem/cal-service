@@ -6,7 +6,10 @@ import com.penelopec.calservice.appointment.application.output.ListAppointmentsO
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.util.AppointmentDateTimeParser;
 import com.penelopec.calservice.appointment.application.usecase.ListAppointmentsUseCase;
+import com.penelopec.calservice.appointment.application.validator.ListAppointmentsQueryValidator;
+import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
+import com.penelopec.calservice.appointment.domain.repository.PageResult;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
 
 import java.time.LocalDateTime;
@@ -15,68 +18,48 @@ import java.util.List;
 public class ListAppointmentsService implements ListAppointmentsUseCase {
 
   private final AppointmentRepository repository;
+  private final ListAppointmentsQueryValidator queryValidator;
 
-  public ListAppointmentsService(AppointmentRepository repository) {
+  public ListAppointmentsService(AppointmentRepository repository,
+                                 ListAppointmentsQueryValidator queryValidator) {
     this.repository = repository;
+    this.queryValidator = queryValidator;
   }
 
   @Override
   public ListAppointmentsOutput execute(ListAppointmentsQuery query) {
+    queryValidator.validateAndThrow(query);
+
     int page = query.page() == null ? 0 : query.page();
     int size = query.size() == null ? 20 : query.size();
 
-    if (page < 0) {
-      throw new IllegalArgumentException("page deve ser maior ou igual a zero");
-    }
-    if (size <= 0) {
-      throw new IllegalArgumentException("size deve ser maior que zero");
-    }
-
     Status status = parseStatus(query.status());
-    LocalDateTime startDateTime = parseDateTime(query.startDateTime(), "startDateTime");
-    LocalDateTime endDateTime = parseDateTime(query.endDateTime(), "endDateTime");
+    LocalDateTime startDateTime = AppointmentDateTimeParser.parseOptional(query.startDateTime()).orElse(null);
+    LocalDateTime endDateTime = AppointmentDateTimeParser.parseOptional(query.endDateTime()).orElse(null);
 
-    List<AppointmentOutput> filtered = repository.findByFilters(
+    PageResult<Appointment> pageResult = repository.findByFilters(
       query.clientId(),
       query.estateAgentId(),
       query.estateId(),
       status,
       startDateTime,
-      endDateTime
-    ).stream()
+      endDateTime,
+      page,
+      size
+    );
+
+    List<AppointmentOutput> items = pageResult.content().stream()
       .map(AppointmentOutputMapper::toOutput)
       .toList();
 
-    long totalElements = filtered.size();
-    int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
-
-    int fromIndex = page * size;
-    List<AppointmentOutput> pageItems = fromIndex >= filtered.size()
-      ? List.of()
-      : filtered.subList(fromIndex, Math.min(fromIndex + size, filtered.size()));
-
-    return new ListAppointmentsOutput(pageItems, page, size, totalElements, totalPages);
+    return new ListAppointmentsOutput(items, pageResult.page(), pageResult.size(),
+      pageResult.totalElements(), pageResult.totalPages());
   }
 
   private Status parseStatus(String rawStatus) {
     if (rawStatus == null || rawStatus.isBlank()) {
       return null;
     }
-
-    try {
-      return Status.valueOf(rawStatus.trim().toUpperCase());
-    } catch (IllegalArgumentException ex) {
-      throw new IllegalArgumentException("status inválido: " + rawStatus);
-    }
-  }
-
-  private LocalDateTime parseDateTime(String rawDateTime, String fieldName) {
-    return AppointmentDateTimeParser.parseOptional(rawDateTime)
-      .orElseGet(() -> {
-        if (rawDateTime == null || rawDateTime.isBlank()) {
-          return null;
-        }
-        throw new IllegalArgumentException("data/hora inválida para " + fieldName + ": " + rawDateTime);
-      });
+    return Status.valueOf(rawStatus.trim().toUpperCase());
   }
 }

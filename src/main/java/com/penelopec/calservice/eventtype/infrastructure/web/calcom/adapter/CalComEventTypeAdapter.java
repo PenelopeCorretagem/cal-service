@@ -1,161 +1,120 @@
 package com.penelopec.calservice.eventtype.infrastructure.web.calcom.adapter;
 
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeCreationException;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeDeletionException;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeNotFoundException;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.shared.error.core.GatewayException;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComApiResponse;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComEventTypeRequest;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComEventTypeResponse;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComUser;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.mapper.CalComEventTypeMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.penelopec.calservice.shared.http.exception.RemoteNotFoundException;
+import com.penelopec.calservice.shared.http.exception.RemoteServiceException;
+import com.penelopec.calservice.shared.http.executor.RestExecutor;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
 public class CalComEventTypeAdapter implements CalComEventTypeGateway {
 
-  private static final Logger log = LoggerFactory.getLogger(CalComEventTypeAdapter.class);
+  private static final String SYSTEM = "CALCOM";
 
   private final RestClient restClient;
+  private final RestExecutor restExecutor;
 
   private static final ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>
-    SINGLE_TYPE = new ParameterizedTypeReference<>() {
-  };
-  private static final ParameterizedTypeReference<CalComApiResponse<List<CalComEventTypeResponse>>>
-    LIST_TYPE = new ParameterizedTypeReference<>() {
-  };
-  private static final ParameterizedTypeReference<CalComApiResponse<CalComUser>>
-    USER_TYPE = new ParameterizedTypeReference<>() {
-  };
+    SINGLE_TYPE = new ParameterizedTypeReference<>() {};
 
-  public CalComEventTypeAdapter(RestClient calRestClient) {
+  private static final ParameterizedTypeReference<CalComApiResponse<List<CalComEventTypeResponse>>>
+    LIST_TYPE = new ParameterizedTypeReference<>() {};
+
+  private static final ParameterizedTypeReference<CalComApiResponse<CalComUser>>
+    USER_TYPE = new ParameterizedTypeReference<>() {};
+
+  public CalComEventTypeAdapter(RestClient calRestClient, RestExecutor restExecutor) {
     this.restClient = calRestClient;
+    this.restExecutor = restExecutor;
   }
 
   @Override
   public EventType create(EventType eventType, boolean hidden) {
     CalComEventTypeRequest request = CalComEventTypeMapper.toRequest(eventType, hidden);
-
     try {
-      CalComEventTypeResponse response = restClient.post()
-        .uri("/v2/event-types")
-        .body(request)
-        .retrieve()
-        .onStatus(HttpStatusCode::isError, (req, res) -> {
-          throw new EventTypeCreationException(
-            "Cal.com retornou status " + res.getStatusCode() + " ao criar EventType");
-        })
-        .body(SINGLE_TYPE)
-        .data();
-
-      if (response == null) {
-        throw new EventTypeCreationException("Resposta nula do Cal.com ao criar EventType");
-      }
+      CalComEventTypeResponse response = restExecutor.execute(SYSTEM, () ->
+        Objects.requireNonNull(restClient.post()
+            .uri("/v2/event-types")
+            .body(request)
+            .retrieve()
+            .body(SINGLE_TYPE))
+          .data()
+      );
 
       eventType.assignExternalId(response.id());
       return CalComEventTypeMapper.toDomain(response, eventType.getEstateId());
 
-    } catch (EventTypeCreationException e) {
-      throw e;
-    } catch (RestClientResponseException e) {
-      log.error("Erro HTTP ao criar EventType no Cal.com: {}", e.getStatusText(), e);
-      throw new EventTypeCreationException("Falha na comunicação com Cal.com ao criar EventType", e);
-    } catch (Exception e) {
-      log.error("Erro inesperado ao criar EventType no Cal.com", e);
-      throw new EventTypeCreationException("Erro inesperado ao criar EventType no Cal.com", e);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(EventTypeError.CREATION_FAILED, e);
     }
   }
 
   @Override
   public EventType update(EventType eventType, boolean hidden) {
     CalComEventTypeRequest request = CalComEventTypeMapper.toRequest(eventType, hidden);
-
     try {
-      CalComEventTypeResponse response = restClient.patch()
-        .uri("/v2/event-types/{id}", eventType.getId())
-        .body(request)
-        .retrieve()
-        .onStatus(HttpStatusCode::isError, (req, res) -> {
-          throw new EventTypeCreationException(
-            "Cal.com retornou status " + res.getStatusCode()
-              + " ao atualizar EventType " + eventType.getId());
-        })
-        .body(SINGLE_TYPE)
-        .data();
-
-      if (response == null) {
-        throw new EventTypeCreationException(
-          "Resposta nula do Cal.com ao atualizar EventType " + eventType.getId());
-      }
+      CalComEventTypeResponse response = restExecutor.execute(SYSTEM, () ->
+        Objects.requireNonNull(restClient.patch()
+            .uri("/v2/event-types/{id}", eventType.getId())
+            .body(request)
+            .retrieve()
+            .body(SINGLE_TYPE))
+          .data()
+      );
 
       return CalComEventTypeMapper.toDomain(response, eventType.getEstateId());
 
-    } catch (EventTypeCreationException e) {
-      throw e;
-    } catch (RestClientResponseException e) {
-      log.error("Erro HTTP ao atualizar EventType {} no Cal.com: {}", eventType.getId(), e.getStatusText(), e);
-      throw new EventTypeCreationException(
-        "Falha na comunicação com Cal.com ao atualizar EventType " + eventType.getId(), e);
-    } catch (Exception e) {
-      log.error("Erro inesperado ao atualizar EventType {} no Cal.com", eventType.getId(), e);
-      throw new EventTypeCreationException(
-        "Erro inesperado ao atualizar EventType " + eventType.getId(), e);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(EventTypeError.UPDATE_FAILED, e);
     }
   }
 
   @Override
   public void delete(Long eventTypeId) {
     try {
-      restClient.delete()
-        .uri("/v2/event-types/{id}", eventTypeId)
-        .retrieve()
-        .onStatus(HttpStatusCode::isError, (req, res) -> {
-          throw new EventTypeDeletionException(
-            "Cal.com retornou status " + res.getStatusCode()
-              + " ao deletar EventType " + eventTypeId);
-        })
-        .toBodilessEntity();
-
-    } catch (EventTypeDeletionException e) {
-      throw e;
-    } catch (Exception e) {
-      log.error("Erro ao deletar EventType {} no Cal.com", eventTypeId, e);
-      throw new EventTypeDeletionException("Falha ao deletar EventType " + eventTypeId, e);
+      restExecutor.executeVoid(SYSTEM, () ->
+        restClient.delete()
+          .uri("/v2/event-types/{id}", eventTypeId)
+          .retrieve()
+          .toBodilessEntity()
+      );
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(EventTypeError.DELETION_FAILED, e);
     }
   }
 
   @Override
   public Optional<EventType> findById(Long eventTypeId) {
     try {
-      CalComEventTypeResponse response = restClient.get()
-        .uri("/v2/event-types/{id}", eventTypeId)
-        .retrieve()
-        .onStatus(status -> status.value() == 404, (req, res) -> {
-          throw new EventTypeNotFoundException(
-            "EventType não encontrado no Cal.com: " + eventTypeId);
-        })
-        .body(SINGLE_TYPE)
-        .data();
+      CalComEventTypeResponse response = restExecutor.executeOrNull(SYSTEM, () ->
+        Objects.requireNonNull(restClient.get()
+            .uri("/v2/event-types/{id}", eventTypeId)
+            .retrieve()
+            .body(SINGLE_TYPE))
+          .data()
+      );
 
       return Optional.ofNullable(response)
         .map(r -> CalComEventTypeMapper.toDomain(r, null));
 
-    } catch (EventTypeNotFoundException e) {
+    } catch (RemoteNotFoundException e) {
       return Optional.empty();
-    } catch (RestClientResponseException e) {
-      log.error("Erro HTTP ao buscar EventType {} no Cal.com: {}", eventTypeId, e.getStatusText(), e);
-      throw new EventTypeNotFoundException(
-        "Falha na comunicação com Cal.com ao buscar EventType " + eventTypeId);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(EventTypeError.INTEGRATION_UNAVAILABLE, e);
     }
   }
 
@@ -165,13 +124,14 @@ public class CalComEventTypeAdapter implements CalComEventTypeGateway {
       String username = getAuthenticatedUsername();
 
       List<CalComEventTypeResponse> responses = Optional.ofNullable(
-          restClient.get()
-            .uri(uriBuilder -> uriBuilder
-              .path("/v2/event-types")
-              .queryParam("username", username)
-              .build())
-            .retrieve()
-            .body(LIST_TYPE))
+          restExecutor.executeOrNull(SYSTEM, () ->
+            restClient.get()
+              .uri(uriBuilder -> uriBuilder
+                .path("/v2/event-types")
+                .queryParam("username", username)
+                .build())
+              .retrieve()
+              .body(LIST_TYPE)))
         .map(CalComApiResponse::data)
         .orElse(List.of());
 
@@ -179,25 +139,19 @@ public class CalComEventTypeAdapter implements CalComEventTypeGateway {
         .map(r -> CalComEventTypeMapper.toDomain(r, null))
         .toList();
 
-    } catch (EventTypeCreationException e) {
-      throw e;
-    } catch (RestClientResponseException e) {
-      log.error("Erro HTTP ao listar EventTypes no Cal.com: {}", e.getStatusText(), e);
-      throw new EventTypeCreationException("Falha na comunicação com Cal.com ao listar EventTypes", e);
-    } catch (Exception e) {
-      log.error("Erro ao listar EventTypes no Cal.com", e);
-      throw new EventTypeCreationException("Erro inesperado ao listar EventTypes no Cal.com", e);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(EventTypeError.INTEGRATION_UNAVAILABLE, e);
     }
   }
 
   private String getAuthenticatedUsername() {
     return Optional.ofNullable(
-        restClient.get()
-          .uri("/v2/me")
-          .retrieve()
-          .body(USER_TYPE))
+        restExecutor.executeOrNull(SYSTEM, () ->
+          restClient.get()
+            .uri("/v2/me")
+            .retrieve()
+            .body(USER_TYPE)))
       .map(wrapper -> wrapper.data().username())
-      .orElseThrow(() -> new EventTypeCreationException(
-        "Não foi possível obter o usuário autenticado do Cal.com"));
+      .orElseThrow(() -> new GatewayException(EventTypeError.EXTERNAL_USER_FETCH_FAILED));
   }
 }

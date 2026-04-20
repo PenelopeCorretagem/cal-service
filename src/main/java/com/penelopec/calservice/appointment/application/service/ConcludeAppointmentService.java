@@ -5,7 +5,8 @@ import com.penelopec.calservice.appointment.application.mapper.AppointmentOutput
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
 import com.penelopec.calservice.appointment.application.usecase.ConcludeAppointmentUseCase;
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
-import com.penelopec.calservice.appointment.domain.exception.AppointmentNotFoundException;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 
 public class ConcludeAppointmentService implements ConcludeAppointmentUseCase {
@@ -19,8 +20,7 @@ public class ConcludeAppointmentService implements ConcludeAppointmentUseCase {
   @Override
   public AppointmentOutput execute(ConcludeAppointmentCommand command) {
     Appointment appointment = repository.findById(command.appointmentId())
-      .orElseThrow(() -> new AppointmentNotFoundException(
-        "Agendamento não encontrado: " + command.appointmentId()));
+      .orElseThrow(() -> new DomainException(AppointmentError.NOT_FOUND, command.appointmentId()));
 
     appointment.conclude();
     Appointment saved = repository.save(appointment);

@@ -2,16 +2,25 @@ package com.penelopec.calservice.appointment.infrastructure.persistence.adapter;
 
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
+import com.penelopec.calservice.appointment.domain.repository.PageResult;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
 import com.penelopec.calservice.appointment.infrastructure.persistence.entity.AppointmentJpaEntity;
 import com.penelopec.calservice.appointment.infrastructure.persistence.mapper.AppointmentJpaMapper;
 import com.penelopec.calservice.appointment.infrastructure.persistence.repository.AppointmentJpaRepository;
+import com.penelopec.calservice.eventtype.infrastructure.persistence.entity.EventTypeJpaEntity;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Component
 public class AppointmentRepositoryAdapter implements AppointmentRepository {
@@ -31,53 +40,63 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
   @Override
   public Optional<Appointment> findById(Long id) {
-    return jpaRepository.findById(id)
-      .map(AppointmentJpaMapper::toDomain);
+    return jpaRepository.findById(id).map(AppointmentJpaMapper::toDomain);
   }
 
   @Override
-  public Optional<Appointment> findByBookingUid(String bookingUid) {
-    return jpaRepository.findByBookingUid(bookingUid)
-      .map(AppointmentJpaMapper::toDomain);
-  }
+  public PageResult<Appointment> findByFilters(Long clientId, Long estateAgentId, Long estateId,
+                                               Status status, LocalDateTime startDate,
+                                               LocalDateTime endDate, int page, int size) {
+    Specification<AppointmentJpaEntity> spec = buildSpecification(
+      clientId, estateAgentId, estateId, status, startDate, endDate);
 
-  @Override
-  public List<Appointment> findAll() {
-    return jpaRepository.findAll().stream()
+    PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Page<AppointmentJpaEntity> jpaPage = jpaRepository.findAll(spec, pageRequest);
+
+    List<Appointment> content = jpaPage.getContent().stream()
       .map(AppointmentJpaMapper::toDomain)
       .toList();
-  }
 
-  @Override
-  public List<Appointment> findByFilters(Long clientId, Long estateAgentId, Long estateId,
-                                         Status status, LocalDateTime startDate,
-                                         LocalDateTime endDate) {
-    Stream<AppointmentJpaEntity> stream = jpaRepository.findAll().stream();
-
-    if (clientId != null) {
-      stream = stream.filter(e -> clientId.equals(e.getClientId()));
-    }
-    if (estateAgentId != null) {
-      stream = stream.filter(e -> estateAgentId.equals(e.getEstateAgentId()));
-    }
-    if (estateId != null) {
-      stream = stream.filter(e -> estateId.equals(e.getEstateId()));
-    }
-    if (status != null) {
-      stream = stream.filter(e -> status.name().equals(e.getStatus()));
-    }
-    if (startDate != null) {
-      stream = stream.filter(e -> !e.getStartDateTime().isBefore(startDate));
-    }
-    if (endDate != null) {
-      stream = stream.filter(e -> !e.getEndDateTime().isAfter(endDate));
-    }
-
-    return stream.map(AppointmentJpaMapper::toDomain).toList();
+    return new PageResult<>(content, jpaPage.getNumber(), jpaPage.getSize(),
+      jpaPage.getTotalElements(), jpaPage.getTotalPages());
   }
 
   @Override
   public void deleteById(Long id) {
     jpaRepository.deleteById(id);
+  }
+
+  private Specification<AppointmentJpaEntity> buildSpecification(
+      Long clientId, Long estateAgentId, Long estateId,
+      Status status, LocalDateTime startDate, LocalDateTime endDate) {
+
+    return (root, query, cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+
+      if (clientId != null) {
+        predicates.add(cb.equal(root.get("clientId"), clientId));
+      }
+      if (estateAgentId != null) {
+        predicates.add(cb.equal(root.get("estateAgentId"), estateAgentId));
+      }
+      if (status != null) {
+        predicates.add(cb.equal(root.get("status"), status.name()));
+      }
+      if (startDate != null) {
+        predicates.add(cb.greaterThanOrEqualTo(root.get("startDateTime"), startDate));
+      }
+      if (endDate != null) {
+        predicates.add(cb.lessThanOrEqualTo(root.get("endDateTime"), endDate));
+      }
+      if (estateId != null) {
+        Subquery<Long> subquery = query.subquery(Long.class);
+        Root<EventTypeJpaEntity> eventType = subquery.from(EventTypeJpaEntity.class);
+        subquery.select(eventType.get("id"))
+          .where(cb.equal(eventType.get("estateId"), estateId));
+        predicates.add(root.get("eventTypeId").in(subquery));
+      }
+
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
   }
 }

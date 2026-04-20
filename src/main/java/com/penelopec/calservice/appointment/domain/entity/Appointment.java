@@ -1,7 +1,10 @@
 package com.penelopec.calservice.appointment.domain.entity;
 
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
+import com.penelopec.calservice.shared.error.core.DomainException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -12,11 +15,13 @@ public class Appointment {
   private Long eventTypeId;
   private Long clientId;
   private Long estateAgentId;
-  private Long estateId;
-  private Integer durationMinutes;
   private Status status;
   private LocalDateTime startDateTime;
   private LocalDateTime endDateTime;
+  private String attendeeName;
+  private String attendeeEmail;
+  private String notes;
+  private String reason;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
 
@@ -24,23 +29,24 @@ public class Appointment {
   }
 
   public static Appointment createNew(Long eventTypeId, Long clientId, Long estateAgentId,
-                                      Long estateId, LocalDateTime startDateTime,
-                                      LocalDateTime endDateTime) {
+                                      LocalDateTime startDateTime, LocalDateTime endDateTime,
+                                      String attendeeName, String attendeeEmail, String notes) {
     if (startDateTime == null || endDateTime == null) {
-      throw new IllegalArgumentException("Datas de início e fim são obrigatórias");
+      throw new DomainException(AppointmentError.MISSING_DATETIMES);
     }
     if (!endDateTime.isAfter(startDateTime)) {
-      throw new IllegalArgumentException("Data fim deve ser posterior à data início");
+      throw new DomainException(AppointmentError.INVALID_DATES);
     }
 
     Appointment a = new Appointment();
     a.eventTypeId = eventTypeId;
     a.clientId = clientId;
     a.estateAgentId = estateAgentId;
-    a.estateId = estateId;
     a.startDateTime = startDateTime;
     a.endDateTime = endDateTime;
-    a.durationMinutes = (int) java.time.Duration.between(startDateTime, endDateTime).toMinutes();
+    a.attendeeName = attendeeName;
+    a.attendeeEmail = attendeeEmail;
+    a.notes = notes;
     a.status = Status.PENDING;
     a.createdAt = LocalDateTime.now();
     a.updatedAt = a.createdAt;
@@ -48,9 +54,11 @@ public class Appointment {
   }
 
   public static Appointment reconstitute(Long id, String bookingUid, Long eventTypeId,
-                                         Long clientId, Long estateAgentId, Long estateId,
-                                         Integer durationMinutes, Status status,
-                                         LocalDateTime startDateTime, LocalDateTime endDateTime,
+                                         Long clientId, Long estateAgentId,
+                                         Status status, LocalDateTime startDateTime,
+                                         LocalDateTime endDateTime,
+                                         String attendeeName, String attendeeEmail,
+                                         String notes, String reason,
                                          LocalDateTime createdAt, LocalDateTime updatedAt) {
     Appointment a = new Appointment();
     a.id = id;
@@ -58,11 +66,13 @@ public class Appointment {
     a.eventTypeId = eventTypeId;
     a.clientId = clientId;
     a.estateAgentId = estateAgentId;
-    a.estateId = estateId;
-    a.durationMinutes = durationMinutes;
     a.status = status;
     a.startDateTime = startDateTime;
     a.endDateTime = endDateTime;
+    a.attendeeName = attendeeName;
+    a.attendeeEmail = attendeeEmail;
+    a.notes = notes;
+    a.reason = reason;
     a.createdAt = createdAt;
     a.updatedAt = updatedAt;
     return a;
@@ -75,42 +85,45 @@ public class Appointment {
 
   public void confirm() {
     if (this.status.isTerminal()) {
-      throw new IllegalStateException("Não é possível confirmar agendamento com status " + this.status);
+      throw new DomainException(AppointmentError.INVALID_STATUS_TRANSITION, this.status);
     }
     this.status = Status.CONFIRMED;
     this.updatedAt = LocalDateTime.now();
   }
 
-  public void cancel() {
+  public void cancel(String reason) {
     if (this.status.isTerminal()) {
-      throw new IllegalStateException("Não é possível cancelar agendamento com status " + this.status);
+      throw new DomainException(AppointmentError.INVALID_STATUS_TRANSITION, this.status);
     }
     this.status = Status.CANCELLED;
+    this.reason = reason;
     this.updatedAt = LocalDateTime.now();
   }
 
   public void conclude() {
     if (this.status == Status.CANCELLED) {
-      throw new IllegalStateException("Não é possível concluir agendamento cancelado");
+      throw new DomainException(AppointmentError.INVALID_STATUS_TRANSITION, this.status);
     }
     this.status = Status.CONCLUDED;
     this.updatedAt = LocalDateTime.now();
   }
 
-  public void reschedule(LocalDateTime newStart, LocalDateTime newEnd) {
+  public void reschedule(LocalDateTime newStart, LocalDateTime newEnd, String reason) {
     if (this.status.isTerminal()) {
-      throw new IllegalStateException("Não é possível reagendar agendamento com status " + this.status);
+      throw new DomainException(AppointmentError.INVALID_STATUS_TRANSITION, this.status);
     }
     if (!newEnd.isAfter(newStart)) {
-      throw new IllegalArgumentException("Data fim deve ser posterior à data início");
+      throw new DomainException(AppointmentError.INVALID_DATES);
     }
     this.startDateTime = newStart;
     this.endDateTime = newEnd;
-    this.durationMinutes = (int) java.time.Duration.between(newStart, newEnd).toMinutes();
+    this.reason = reason;
     this.updatedAt = LocalDateTime.now();
   }
 
-  // Getters
+  public int getDurationMinutes() {
+    return (int) Duration.between(startDateTime, endDateTime).toMinutes();
+  }
 
   public Long getId() { return id; }
 
@@ -122,15 +135,19 @@ public class Appointment {
 
   public Long getEstateAgentId() { return estateAgentId; }
 
-  public Long getEstateId() { return estateId; }
-
-  public Integer getDurationMinutes() { return durationMinutes; }
-
   public Status getStatus() { return status; }
 
   public LocalDateTime getStartDateTime() { return startDateTime; }
 
   public LocalDateTime getEndDateTime() { return endDateTime; }
+
+  public String getAttendeeName() { return attendeeName; }
+
+  public String getAttendeeEmail() { return attendeeEmail; }
+
+  public String getNotes() { return notes; }
+
+  public String getReason() { return reason; }
 
   public LocalDateTime getCreatedAt() { return createdAt; }
 

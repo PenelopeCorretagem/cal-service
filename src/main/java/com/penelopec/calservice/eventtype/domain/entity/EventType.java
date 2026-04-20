@@ -1,6 +1,8 @@
 package com.penelopec.calservice.eventtype.domain.entity;
 
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.valueobject.Slug;
+import com.penelopec.calservice.shared.error.core.DomainException;
 
 public class EventType {
 
@@ -50,11 +52,8 @@ public class EventType {
   }
 
   public void assignExternalId(Long externalId) {
-    if (externalId == null || externalId <= 0) {
-      throw new IllegalArgumentException("ID externo inválido: " + externalId);
-    }
-    if (this.id != null) {
-      throw new IllegalStateException("EventType já possui ID atribuído: " + this.id);
+    if (externalId == null || externalId <= 0 || this.id != null) {
+      throw new DomainException(EventTypeError.INVALID_EXTERNAL_ID);
     }
     this.id = externalId;
   }
@@ -75,14 +74,14 @@ public class EventType {
 
   public void updateLengthInMinutes(int lengthInMinutes) {
     if (lengthInMinutes <= 0) {
-      throw new IllegalArgumentException("Duração deve ser maior que zero");
+      throw new DomainException(EventTypeError.INVALID_DURATION);
     }
     this.lengthInMinutes = lengthInMinutes;
   }
 
   public void updateMinimumBookingNotice(int minimumBookingNotice) {
     if (minimumBookingNotice < 0) {
-      throw new IllegalArgumentException("Antecedência mínima não pode ser negativa");
+      throw new DomainException(EventTypeError.INVALID_BOOKING_NOTICE);
     }
     this.minimumBookingNotice = minimumBookingNotice;
   }
@@ -141,13 +140,13 @@ public class EventType {
 
   private static void validateTitle(String title) {
     if (title == null || title.isBlank()) {
-      throw new IllegalArgumentException("Título do EventType não pode ser vazio");
+      throw new DomainException(EventTypeError.INVALID_TITLE);
     }
   }
 
   private static void validateEstateId(Long estateId) {
     if (estateId == null) {
-      throw new IllegalArgumentException("ID do imóvel é obrigatório");
+      throw new DomainException(EventTypeError.ESTATE_ID_REQUIRED);
     }
   }
 }

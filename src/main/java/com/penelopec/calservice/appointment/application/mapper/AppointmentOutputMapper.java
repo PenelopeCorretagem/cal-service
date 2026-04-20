@@ -15,11 +15,14 @@ public class AppointmentOutputMapper {
       appointment.getEventTypeId(),
       appointment.getClientId(),
       appointment.getEstateAgentId(),
-      appointment.getEstateId(),
       appointment.getDurationMinutes(),
       appointment.getStatus().name(),
       appointment.getStartDateTime(),
       appointment.getEndDateTime(),
+      appointment.getAttendeeName(),
+      appointment.getAttendeeEmail(),
+      appointment.getNotes(),
+      appointment.getReason(),
       appointment.getCreatedAt(),
       appointment.getUpdatedAt()
     );

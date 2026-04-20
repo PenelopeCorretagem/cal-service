@@ -13,9 +13,6 @@ public record CreateAppointmentRequest(
   @NotNull(message = "estateAgentId é obrigatório")
   Long estateAgentId,
 
-  @NotNull(message = "estateId é obrigatório")
-  Long estateId,
-
   @NotNull(message = "startDateTime é obrigatório")
   String startDateTime,
 

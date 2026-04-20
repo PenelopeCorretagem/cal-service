@@ -1,12 +1,15 @@
 package com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter;
 
-import com.penelopec.calservice.appointment.domain.exception.AppointmentIntegrationException;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
+import com.penelopec.calservice.shared.error.core.GatewayException;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.dto.CalComBookingRequest;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.dto.CalComBookingResponse;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.dto.CalComCancelRequest;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.dto.CalComRescheduleRequest;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComApiResponse;
+import com.penelopec.calservice.shared.http.exception.RemoteServiceException;
+import com.penelopec.calservice.shared.http.executor.RestExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -18,14 +21,17 @@ import java.util.Optional;
 public class CalComBookingAdapter implements CalComBookingGateway {
 
   private static final Logger log = LoggerFactory.getLogger(CalComBookingAdapter.class);
+  private static final String SYSTEM = "CALCOM";
 
   private final RestClient restClient;
+  private final RestExecutor restExecutor;
 
   private static final ParameterizedTypeReference<CalComApiResponse<CalComBookingResponse>>
     WRAPPER_BOOKING = new ParameterizedTypeReference<>() {};
 
-  public CalComBookingAdapter(RestClient restClient) {
+  public CalComBookingAdapter(RestClient restClient, RestExecutor restExecutor) {
     this.restClient = restClient;
+    this.restExecutor = restExecutor;
   }
 
   @Override
@@ -43,22 +49,19 @@ public class CalComBookingAdapter implements CalComBookingGateway {
 
     try {
       CalComBookingResponse response = Optional.ofNullable(
-        restClient.post()
-          .uri("/v2/bookings")
-          .body(body)
-          .retrieve()
-          .body(WRAPPER_BOOKING))
+          restExecutor.executeOrNull(SYSTEM, () ->
+            restClient.post()
+              .uri("/v2/bookings")
+              .body(body)
+              .retrieve()
+              .body(WRAPPER_BOOKING)))
         .map(CalComApiResponse::data)
-        .orElseThrow(() -> new AppointmentIntegrationException(
-          "Resposta nula do Cal.com ao criar booking"));
+        .orElseThrow(() -> new GatewayException(AppointmentError.BOOKING_CREATE_FAILED));
 
       log.info("Booking criado no Cal.com: uid={}", response.uid());
       return toResult(response);
-    } catch (AppointmentIntegrationException e) {
-      throw e;
-    } catch (Exception e) {
-      log.error("Erro ao criar booking no Cal.com: {}", e.getMessage(), e);
-      throw new AppointmentIntegrationException("Falha ao criar booking no Cal.com", e);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(AppointmentError.BOOKING_CREATE_FAILED, e);
     }
   }
 
@@ -71,22 +74,19 @@ public class CalComBookingAdapter implements CalComBookingGateway {
 
     try {
       CalComBookingResponse response = Optional.ofNullable(
-        restClient.patch()
-          .uri("/v2/bookings/{uid}/reschedule", bookingUid)
-          .body(body)
-          .retrieve()
-          .body(WRAPPER_BOOKING))
+          restExecutor.executeOrNull(SYSTEM, () ->
+            restClient.patch()
+              .uri("/v2/bookings/{uid}/reschedule", bookingUid)
+              .body(body)
+              .retrieve()
+              .body(WRAPPER_BOOKING)))
         .map(CalComApiResponse::data)
-        .orElseThrow(() -> new AppointmentIntegrationException(
-          "Resposta nula do Cal.com ao reagendar booking " + bookingUid));
+        .orElseThrow(() -> new GatewayException(AppointmentError.BOOKING_RESCHEDULE_FAILED));
 
       log.info("Booking {} reagendado no Cal.com", bookingUid);
       return toResult(response);
-    } catch (AppointmentIntegrationException e) {
-      throw e;
-    } catch (Exception e) {
-      log.error("Erro ao reagendar booking {} no Cal.com: {}", bookingUid, e.getMessage(), e);
-      throw new AppointmentIntegrationException("Falha ao reagendar booking no Cal.com", e);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(AppointmentError.BOOKING_RESCHEDULE_FAILED, e);
     }
   }
 
@@ -98,22 +98,19 @@ public class CalComBookingAdapter implements CalComBookingGateway {
 
     try {
       CalComBookingResponse response = Optional.ofNullable(
-        restClient.post()
-          .uri("/v2/bookings/{uid}/cancel", bookingUid)
-          .body(body)
-          .retrieve()
-          .body(WRAPPER_BOOKING))
+          restExecutor.executeOrNull(SYSTEM, () ->
+            restClient.post()
+              .uri("/v2/bookings/{uid}/cancel", bookingUid)
+              .body(body)
+              .retrieve()
+              .body(WRAPPER_BOOKING)))
         .map(CalComApiResponse::data)
-        .orElseThrow(() -> new AppointmentIntegrationException(
-          "Resposta nula do Cal.com ao cancelar booking " + bookingUid));
+        .orElseThrow(() -> new GatewayException(AppointmentError.BOOKING_CANCEL_FAILED));
 
       log.info("Booking {} cancelado no Cal.com", bookingUid);
       return toResult(response);
-    } catch (AppointmentIntegrationException e) {
-      throw e;
-    } catch (Exception e) {
-      log.error("Erro ao cancelar booking {} no Cal.com: {}", bookingUid, e.getMessage(), e);
-      throw new AppointmentIntegrationException("Falha ao cancelar booking no Cal.com", e);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(AppointmentError.BOOKING_CANCEL_FAILED, e);
     }
   }
 
@@ -123,20 +120,17 @@ public class CalComBookingAdapter implements CalComBookingGateway {
 
     try {
       CalComBookingResponse response = Optional.ofNullable(
-        restClient.get()
-          .uri("/v2/bookings/{uid}", bookingUid)
-          .retrieve()
-          .body(WRAPPER_BOOKING))
+          restExecutor.executeOrNull(SYSTEM, () ->
+            restClient.get()
+              .uri("/v2/bookings/{uid}", bookingUid)
+              .retrieve()
+              .body(WRAPPER_BOOKING)))
         .map(CalComApiResponse::data)
-        .orElseThrow(() -> new AppointmentIntegrationException(
-          "Booking não encontrado no Cal.com: " + bookingUid));
+        .orElseThrow(() -> new GatewayException(AppointmentError.BOOKING_FETCH_FAILED));
 
       return toResult(response);
-    } catch (AppointmentIntegrationException e) {
-      throw e;
-    } catch (Exception e) {
-      log.error("Erro ao buscar booking {} no Cal.com: {}", bookingUid, e.getMessage(), e);
-      throw new AppointmentIntegrationException("Falha ao buscar booking no Cal.com", e);
+    } catch (RemoteServiceException e) {
+      throw new GatewayException(AppointmentError.BOOKING_FETCH_FAILED, e);
     }
   }
 

@@ -56,7 +56,6 @@ public class AppointmentController implements AppointmentControllerSwagger {
       request.eventTypeId(),
       request.clientId(),
       request.estateAgentId(),
-      request.estateId(),
       request.startDateTime(),
       request.endDateTime(),
       request.attendeeName(),
@@ -86,8 +85,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @RequestParam(required = false) String status,
     @RequestParam(required = false) String startDateTime,
     @RequestParam(required = false) String endDateTime,
-    @RequestParam(required = false) Integer page,
-    @RequestParam(required = false) Integer size
+    @RequestParam(defaultValue = "0") Integer page,
+    @RequestParam(defaultValue = "20") Integer size
   ) {
     var query = new ListAppointmentsQuery(
       clientId,

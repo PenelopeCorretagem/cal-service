@@ -24,11 +24,17 @@ public class AppointmentJpaEntity {
   @Column(name = "corretor_id")
   private Long estateAgentId;
 
-  @Column(name = "empreendimento_id")
-  private Long estateId;
+  @Column(name = "nome_participante", length = 150)
+  private String attendeeName;
 
-  @Column(name = "duracao_minutos", nullable = false)
-  private Integer durationMinutes;
+  @Column(name = "email_participante")
+  private String attendeeEmail;
+
+  @Column(name = "observacoes", columnDefinition = "TEXT")
+  private String notes;
+
+  @Column(name = "motivo", length = 500)
+  private String reason;
 
   @Column(name = "status", nullable = false, length = 20)
   private String status;
@@ -49,19 +55,23 @@ public class AppointmentJpaEntity {
   }
 
   public AppointmentJpaEntity(Long id, String bookingUid, Long eventTypeId, Long clientId,
-                              Long estateAgentId, Long estateId, Integer durationMinutes,
-                              String status, LocalDateTime startDateTime, LocalDateTime endDateTime,
+                              Long estateAgentId, String status,
+                              LocalDateTime startDateTime, LocalDateTime endDateTime,
+                              String attendeeName, String attendeeEmail,
+                              String notes, String reason,
                               LocalDateTime createdAt, LocalDateTime updatedAt) {
     this.id = id;
     this.bookingUid = bookingUid;
     this.eventTypeId = eventTypeId;
     this.clientId = clientId;
     this.estateAgentId = estateAgentId;
-    this.estateId = estateId;
-    this.durationMinutes = durationMinutes;
     this.status = status;
     this.startDateTime = startDateTime;
     this.endDateTime = endDateTime;
+    this.attendeeName = attendeeName;
+    this.attendeeEmail = attendeeEmail;
+    this.notes = notes;
+    this.reason = reason;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -71,8 +81,10 @@ public class AppointmentJpaEntity {
   public Long getEventTypeId() { return eventTypeId; }
   public Long getClientId() { return clientId; }
   public Long getEstateAgentId() { return estateAgentId; }
-  public Long getEstateId() { return estateId; }
-  public Integer getDurationMinutes() { return durationMinutes; }
+  public String getAttendeeName() { return attendeeName; }
+  public String getAttendeeEmail() { return attendeeEmail; }
+  public String getNotes() { return notes; }
+  public String getReason() { return reason; }
   public String getStatus() { return status; }
   public LocalDateTime getStartDateTime() { return startDateTime; }
   public LocalDateTime getEndDateTime() { return endDateTime; }
