@@ -1,6 +1,6 @@
 # Progress — cal-service
 
-**Última atualização**: 2026-04-19 (TASK017 concluída)
+**Última atualização**: 2026-04-20 (TASK019 concluída)
 
 ## Status Geral
 
@@ -22,6 +22,8 @@
 | Organização de Commits (TASK015) | ✅ Concluída    | Refatoração separada em commits temáticos para facilitar revisão |
 | Documentação de API (TASK016) | ✅ Concluída      | Guia endpoint-by-endpoint com request/response, observações críticas e Mermaid |
 | Paginação Event Types (TASK017) | ✅ Concluída     | `GET /event-types` paginado com `Page<T>` na application e contrato OpenAPI atualizado |
+| Paginação Compartilhada (TASK018) | ✅ Concluída    | `Page<T>` centralizada em `shared.pagination` e fluxo de `ListAppointments` migrado |
+| Consolidação de Errors + Review Fixes (TASK019) | ✅ Concluída | Enums de validação consolidados por contexto + correções de segurança, retry AMQP e mensagens de validação |
 
 
 ## O Que Funciona
@@ -41,7 +43,7 @@
 **Transporte HTTP (`shared/error/http/`):**
 - `ErrorHttpStatusMapping` — registry `ConcurrentHashMap<String, HttpStatus>`, zero imports de domínio.
 - `HttpStatusResolver` — delega ao registry; fallback para 500.
-- `CoreHttpStatusRegistrar` — `@Component` que registra as 16 entradas de `CoreError`.
+- `CoreHttpStatusRegister` — `@Component` que registra as entradas de `CoreError`.
 - `GlobalExceptionHandler` — `@RestControllerAdvice` com handlers para todas as exceptions tipadas.
 - `EventTypeHttpStatusRegistrar` — `@Component` em `eventtype.infrastructure.error`.
 - `AppointmentHttpStatusRegistrar` — `@Component` em `appointment.infrastructure.error`.
@@ -57,14 +59,16 @@
 - `SyncScheduler` / `SyncJob`.
 - `EventTypeController` — REST API completa com Swagger.
 - `GET /event-types` agora retorna payload paginado com metadados (`content`, `page`, `size`, `totalElements`, `totalPages`).
+- Contrato de paginação usa `shared.pagination.Page` (sem duplicação por bounded context).
 - `EventTypeError` — códigos semânticos; campo `ErrorType` por constante.
-- `EventTypeValidationCode` — implementa `ErrorContract` diretamente.
+- Códigos de validação foram consolidados em `EventTypeError` (constantes `VALIDATION_*`).
 - Testes unitários: todos passando.
 
 ### Bounded Context `appointment`
 - `CreateAppointmentService`, `GetAppointmentService`, `ListAppointmentsService`, `ConfirmAppointmentService`, `ConcludeAppointmentService`, `CancelAppointmentService`, `RescheduleAppointmentService`, `DeleteAppointmentService`.
+- `GET /appointments` agora usa o mesmo contrato de paginação compartilhado (`content`, `page`, `size`, `totalElements`, `totalPages`).
 - `AppointmentError` — códigos semânticos; campo `ErrorType` por constante.
-- `AppointmentValidationCode` — implementa `ErrorContract` diretamente.
+- Códigos de validação foram consolidados em `AppointmentError` (constantes `APPT-VAL-*`).
 - `ListAppointmentsQueryValidator` — aceita `ErrorContract` via `ValidationResult` corrigido.
 - Testes: todos passando.
 
@@ -88,10 +92,11 @@
 
 ## Métricas de Qualidade
 
-- Última execução local (2026-04-19): `./mvnw compile` com Java 21 concluído com sucesso.
-- `./mvnw test` permanece falhando por erros preexistentes fora de escopo em testes de validators/appointment/eventtype (símbolos ausentes em enums de erro).
+- Última execução local (2026-04-20): `./mvnw compile` com sucesso em Java 21.
+- Última execução local (2026-04-20): `./mvnw test` com sucesso (`171` testes, `0` falhas).
 - TASK011 adicionou novos testes de contrato/hardening (`GlobalExceptionHandlerTest`, `ErrorHttpStatusMappingTest`, `SecurityFilterTest`, `LoggingInterceptorTest`).
 - TASK013 adicionou testes unitários de validators (`eventtype` e `appointment`) e completou `GlobalExceptionHandlerTest` com cenário de método não permitido (`405`).
+- TASK019 consolidou enums de validação em enums de erro por contexto e fechou comentários pendentes de review de segurança/retry/validação.
 - Testes reportados em `target/surefire-reports/`.
 - JaCoCo exec disponível em `target/jacoco.exec`.
 - Relatório HTML em `target/site/jacoco/`.

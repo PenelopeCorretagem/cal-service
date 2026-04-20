@@ -1,9 +1,11 @@
 # Active Context — cal-service
 
-**Última atualização**: 2026-04-19
+**Última atualização**: 2026-04-20
 
 ## Foco Atual
 
+- **TASK019 (Completed)**: consolidação de erros por contexto (`AppointmentError`/`EventTypeError`) e fechamento dos comentários pendentes de review (validacao formatada, whitelist de auth explícita, retry AMQP no container, testes alinhados).
+- **TASK018 (Completed)**: paginação unificada via `shared.pagination.Page`, com migração do fluxo de `ListAppointments` e alinhamento de contratos REST/OpenAPI.
 - **TASK017 (Completed)**: `GET /event-types` migrado para resposta paginada com `Page<T>` na camada application e contrato OpenAPI atualizado.
 - **TASK016 (Completed)**: Guia de integração de consumo da API refinado em formato endpoint-by-endpoint com request/response, observações críticas e diagramas Mermaid.
 - **TASK015 (Completed)**: alterações da branch `feat/refatoracao-integracao-cal-service` separadas em commits temáticos para revisão.
@@ -16,10 +18,22 @@
 
 ## O Que Foi Feito Recentemente
 
+- Consolidados os erros de validação por bounded context:
+	- `AppointmentValidationCode` removido; codigos migrados para `AppointmentError`.
+	- `EventTypeValidationCode` removido; codigos migrados para `EventTypeError` (constantes `VALIDATION_*`).
+- `ValidationResult` atualizado com overloads que aceitam argumentos para formatação de mensagem, permitindo preencher placeholders `%s` nos erros de validação.
+- `ListAppointmentsQueryValidator` corrigido para informar o valor inválido de `status` na mensagem.
+- `SecurityConfig` (prod) ajustado para endpoints de auth explícitos (`/auth/login`, `/auth/validate-token`) no lugar de `/auth/**`.
+- `EstateChangedConsumer` deixou de usar retry com `Thread.sleep`; retry/backoff e recoverer foram configurados no `RabbitMQConfig` via `RetryInterceptorBuilder`.
+- Testes atualizados para o novo comportamento (`CreateAppointmentServiceTest`, `EstateChangedConsumerTest`, validators de `eventtype` e `appointment`).
+- `./mvnw compile` e `./mvnw test` executados com sucesso em Java 21 (171/171 testes verdes).
+- `Page<T>` movida para `shared.pagination` e reutilizada pelos fluxos de `eventtype` e `appointment`.
+- `ListAppointmentsUseCase` e `ListAppointmentsService` passaram a retornar `Page<AppointmentOutput>`.
+- `AppointmentController` e `AppointmentControllerSwagger` atualizados para resposta paginada padronizada com `content`.
+- `docs/guia-integracao-api.md` atualizado no endpoint `GET /appointments` para o novo payload.
 - Listagem de `event-types` alterada para paginação obrigatória com query params `page` e `size`.
-- Criada `Page<T>` em `eventtype.application.output` para evitar dependência de `org.springframework.data.domain.Page` na camada application.
+- Criada `Page<T>` em `shared.pagination` para evitar dependência de `org.springframework.data.domain.Page` na camada application.
 - `EventTypeControllerSwagger` e guia de integração atualizados para o novo contrato paginado.
-- `./mvnw compile` executado com sucesso em Java 21; `./mvnw test` permanece bloqueado por erros preexistentes fora de escopo nos testes de validators.
 - Documentação de integração para consumidores externos evoluída para formato endpoint-by-endpoint com request/response por rota, erros comuns e observações importantes.
 - Diagramas Mermaid adicionados para visão de arquitetura, fluxo de autenticação e ciclo de vida de agendamento.
 - Refatoração da branch foi separada em commits por tema (auth/infra, core errors, REST/OpenAPI, testes e documentação) para facilitar code review.
@@ -39,7 +53,8 @@
 
 - Exceptions por camada permanecem mandatórias (`DomainException`, `GatewayException`, `ApplicationException`, `ValidationException`).
 - Mapeamento HTTP é centralizado em registry/registrars (`shared/error/http`) sem acoplamento do domínio a HTTP.
-- `ValidationCode` permanece apenas como compatibilidade; novos fluxos usam `ErrorContract` diretamente.
+- Erros de validação foram consolidados em `AppointmentError` e `EventTypeError`; enums de validação separados foram removidos.
+- Retry de processamento RabbitMQ permanece no container/listener advice chain (sem `Thread.sleep` no consumer).
 - `reconstitute()` e `createNew()` seguem como únicos factory methods válidos em entidades de domínio.
 
 ## Contexto de Integração

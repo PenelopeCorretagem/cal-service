@@ -10,6 +10,8 @@ _(nenhuma tarefa pendente)_
 
 ## Completed
 
+- [TASK019] Consolidar errors por contexto e corrigir review comments — enums de validacao consolidados em `AppointmentError`/`EventTypeError`, com fixes de seguranca/retry/validacao e suite verde (171/171) - Concluído em 2026-04-20
+- [TASK018] Centralizar Page em shared e aplicar em ListAppointments — paginação unificada com `shared.pagination.Page` em `eventtype` e `appointment` - Concluído em 2026-04-19
 - [TASK017] Paginar listagem de event types — `GET /event-types` atualizado para paginação com `Page<T>` na camada application - Concluído em 2026-04-19
 - [TASK016] Documentação de API para integração de consumo — guia endpoint-by-endpoint com request/response, observações de integração e diagramas Mermaid em `docs/guia-integracao-api.md` - Concluído em 2026-04-19
 - [TASK015] Separar commits da refatoração de integração — alterações da branch organizadas em commits temáticos para revisão - Concluído em 2026-04-19
