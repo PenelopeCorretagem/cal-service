@@ -1,9 +1,11 @@
 # Active Context — cal-service
 
-**Última atualização**: 2026-04-20
+**Última atualização**: 2026-04-19
 
 ## Foco Atual
 
+- **TASK017 (Completed)**: `GET /event-types` migrado para resposta paginada com `Page<T>` na camada application e contrato OpenAPI atualizado.
+- **TASK016 (Completed)**: Guia de integração de consumo da API refinado em formato endpoint-by-endpoint com request/response, observações críticas e diagramas Mermaid.
 - **TASK015 (Completed)**: alterações da branch `feat/refatoracao-integracao-cal-service` separadas em commits temáticos para revisão.
 - **TASK011 (Completed)**: Complemento pós-code-review concluído em `shared/error`, `shared/http`, `SecurityFilter`, testes de contrato e documentação.
 - **TASK014 (Completed)**: Reestruturação semântica de packages de testes `eventtype` e varredura do módulo `shared` finalizada.
@@ -14,6 +16,12 @@
 
 ## O Que Foi Feito Recentemente
 
+- Listagem de `event-types` alterada para paginação obrigatória com query params `page` e `size`.
+- Criada `Page<T>` em `eventtype.application.output` para evitar dependência de `org.springframework.data.domain.Page` na camada application.
+- `EventTypeControllerSwagger` e guia de integração atualizados para o novo contrato paginado.
+- `./mvnw compile` executado com sucesso em Java 21; `./mvnw test` permanece bloqueado por erros preexistentes fora de escopo nos testes de validators.
+- Documentação de integração para consumidores externos evoluída para formato endpoint-by-endpoint com request/response por rota, erros comuns e observações importantes.
+- Diagramas Mermaid adicionados para visão de arquitetura, fluxo de autenticação e ciclo de vida de agendamento.
 - Refatoração da branch foi separada em commits por tema (auth/infra, core errors, REST/OpenAPI, testes e documentação) para facilitar code review.
 - Concluídos os itens TASK011.6, TASK011.7, TASK011.8 e TASK011.9.
 - `GlobalExceptionHandler` e `ErrorHttpStatusMapping` endurecidos com null-safety/fallbacks e proteção contra sobrescrita silenciosa.

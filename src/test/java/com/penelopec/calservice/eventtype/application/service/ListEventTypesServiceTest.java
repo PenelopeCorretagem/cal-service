@@ -1,7 +1,7 @@
 package com.penelopec.calservice.eventtype.application.service;
 
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
-import com.penelopec.calservice.eventtype.application.service.ListEventTypesService;
+import com.penelopec.calservice.eventtype.application.output.Page;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import org.junit.jupiter.api.DisplayName;
@@ -39,14 +39,16 @@ class ListEventTypesServiceTest {
       when(calComGateway.listAll()).thenReturn(List.of(first, second));
 
       // When
-      List<EventTypeOutput> outputs = service.execute();
+      Page<EventTypeOutput> outputs = service.execute(0, 1);
 
       // Then
-      assertThat(outputs).hasSize(2);
-      assertThat(outputs.get(0).id()).isEqualTo(1L);
-      assertThat(outputs.get(0).slug()).isEqualTo("visita-a");
-      assertThat(outputs.get(1).id()).isEqualTo(2L);
-      assertThat(outputs.get(1).hidden()).isTrue();
+      assertThat(outputs.content()).hasSize(1);
+      assertThat(outputs.content().get(0).id()).isEqualTo(1L);
+      assertThat(outputs.content().get(0).slug()).isEqualTo("visita-a");
+      assertThat(outputs.page()).isEqualTo(0);
+      assertThat(outputs.size()).isEqualTo(1);
+      assertThat(outputs.totalElements()).isEqualTo(2);
+      assertThat(outputs.totalPages()).isEqualTo(2);
     }
 
     @Test
@@ -56,10 +58,32 @@ class ListEventTypesServiceTest {
       when(calComGateway.listAll()).thenReturn(List.of());
 
       // When
-      List<EventTypeOutput> outputs = service.execute();
+      Page<EventTypeOutput> outputs = service.execute(0, 20);
 
       // Then
-      assertThat(outputs).isEmpty();
+      assertThat(outputs.content()).isEmpty();
+      assertThat(outputs.page()).isEqualTo(0);
+      assertThat(outputs.size()).isEqualTo(20);
+      assertThat(outputs.totalElements()).isZero();
+      assertThat(outputs.totalPages()).isZero();
+    }
+
+    @Test
+    @DisplayName("Deve usar defaults quando página e tamanho forem inválidos")
+    void shouldUseDefaultsWhenPageAndSizeAreInvalid() {
+      // Given
+      EventType first = EventType.reconstitute(1L, "Visita A", "visita-a", "Desc A", 60, 120, false, 10L);
+      when(calComGateway.listAll()).thenReturn(List.of(first));
+
+      // When
+      Page<EventTypeOutput> outputs = service.execute(-5, 0);
+
+      // Then
+      assertThat(outputs.page()).isEqualTo(0);
+      assertThat(outputs.size()).isEqualTo(20);
+      assertThat(outputs.totalElements()).isEqualTo(1);
+      assertThat(outputs.totalPages()).isEqualTo(1);
+      assertThat(outputs.content()).hasSize(1);
     }
   }
 }

@@ -1,13 +1,13 @@
 package com.penelopec.calservice.eventtype.infrastructure.controller.doc;
 
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
+import com.penelopec.calservice.eventtype.application.output.Page;
 import com.penelopec.calservice.shared.error.core.ApiErrorResponse;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.CreateEventTypeRequest;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.UpdateEventTypeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,8 +19,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Tipos de Evento", description = "Endpoints para criação, consulta, atualização e exclusão de tipos de evento integrados ao Cal.com")
 @SecurityRequirement(name = "bearerAuth")
@@ -123,25 +122,25 @@ public interface EventTypeControllerSwagger {
   );
 
   @Operation(
-    summary = "Listar todos os tipos de evento",
-    description = "Retorna a lista completa de tipos de evento cadastrados no Cal.com para o usuário autenticado. "
-      + "Caso não haja nenhum tipo de evento, retorna uma **lista vazia** com status **200**."
+    summary = "Listar tipos de evento com paginação",
+    description = "Retorna tipos de evento de forma paginada. "
+      + "Parâmetros: **page** (padrão 0) e **size** (padrão 20)."
   )
   @ApiResponses({
     @ApiResponse(
       responseCode = "200",
-      description = "Lista de tipos de evento retornada com sucesso (pode estar vazia)",
+      description = "Página de tipos de evento retornada com sucesso",
       content = @Content(
         mediaType = "application/json",
-        array = @ArraySchema(schema = @Schema(implementation = EventTypeOutput.class)),
+        schema = @Schema(implementation = Page.class),
         examples = {
           @ExampleObject(
-            name = "Lista com resultados",
-            value = "[{\"id\": 123, \"title\": \"Visita ao Empreendimento Parque das Flores\", \"slug\": \"visita-ao-empreendimento-parque-das-flores\", \"description\": \"Visita presencial\", \"lengthInMinutes\": 60, \"minimumBookingNotice\": 120, \"hidden\": false, \"estateId\": null}, {\"id\": 456, \"title\": \"Tour Virtual Residencial Primavera\", \"slug\": \"tour-virtual-residencial-primavera\", \"description\": null, \"lengthInMinutes\": 60, \"minimumBookingNotice\": 120, \"hidden\": false, \"estateId\": null}]"
+            name = "Página com resultados",
+            value = "{\"content\":[{\"id\":123,\"title\":\"Visita ao Empreendimento Parque das Flores\",\"slug\":\"visita-ao-empreendimento-parque-das-flores\",\"description\":\"Visita presencial\",\"lengthInMinutes\":60,\"minimumBookingNotice\":120,\"hidden\":false,\"estateId\":null}],\"page\":0,\"size\":20,\"totalElements\":1,\"totalPages\":1}"
           ),
           @ExampleObject(
-            name = "Lista vazia",
-            value = "[]"
+            name = "Página vazia",
+            value = "{\"content\":[],\"page\":0,\"size\":20,\"totalElements\":0,\"totalPages\":0}"
           )
         }
       )
@@ -152,7 +151,12 @@ public interface EventTypeControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })
-  ResponseEntity<List<EventTypeOutput>> listAll();
+  ResponseEntity<Page<EventTypeOutput>> listAll(
+    @Parameter(description = "Número da página (inicia em 0)", example = "0")
+    @RequestParam(defaultValue = "0") int page,
+    @Parameter(description = "Quantidade de itens por página", example = "20")
+    @RequestParam(defaultValue = "20") int size
+  );
 
   @Operation(
     summary = "Atualizar tipo de evento",
