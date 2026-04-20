@@ -1,7 +1,7 @@
 package com.penelopec.calservice.eventtype.application.validator;
 
 import com.penelopec.calservice.eventtype.application.command.HandleEstateChangedCommand;
-import com.penelopec.calservice.eventtype.domain.error.EventTypeValidationCode;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +35,7 @@ class HandleEstateChangedCommandValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).singleElement().satisfies(error -> {
       assertThat(error.field()).isEqualTo("estateId");
-      assertThat(error.code()).isEqualTo(EventTypeValidationCode.ESTATE_CHANGED_ID_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(EventTypeError.VALIDATION_ESTATE_CHANGED_ID_REQUIRED.code());
     });
   }
 }

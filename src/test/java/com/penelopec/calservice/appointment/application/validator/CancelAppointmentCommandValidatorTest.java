@@ -1,7 +1,7 @@
 package com.penelopec.calservice.appointment.application.validator;
 
 import com.penelopec.calservice.appointment.application.command.CancelAppointmentCommand;
-import com.penelopec.calservice.appointment.domain.error.AppointmentValidationCode;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +35,7 @@ class CancelAppointmentCommandValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).singleElement().satisfies(error -> {
       assertThat(error.field()).isEqualTo("appointmentId");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.APPOINTMENT_ID_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.APPOINTMENT_ID_REQUIRED.code());
     });
   }
 }

@@ -1,7 +1,7 @@
 package com.penelopec.calservice.appointment.application.validator;
 
 import com.penelopec.calservice.appointment.application.command.RescheduleAppointmentCommand;
-import com.penelopec.calservice.appointment.domain.error.AppointmentValidationCode;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,15 +46,15 @@ class RescheduleAppointmentCommandValidatorTest {
     assertThat(result.getErrors()).hasSize(3);
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("appointmentId");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.APPOINTMENT_ID_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.APPOINTMENT_ID_REQUIRED.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("startDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.START_DATETIME_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_REQUIRED.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.END_DATETIME_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_REQUIRED.code());
     });
   }
 
@@ -76,11 +76,11 @@ class RescheduleAppointmentCommandValidatorTest {
     assertThat(result.getErrors()).hasSize(2);
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("startDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.START_DATETIME_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_INVALID.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.END_DATETIME_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_INVALID.code());
     });
   }
 }

@@ -16,8 +16,6 @@ import java.io.IOException;
 public class EstateChangedConsumer {
 
   private static final Logger log = LoggerFactory.getLogger(EstateChangedConsumer.class);
-  private static final int MAX_RETRIES = 3;
-  private static final long INITIAL_BACKOFF_MS = 2000;
 
   private final HandleEstateChangedUseCase useCase;
 
@@ -42,34 +40,15 @@ public class EstateChangedConsumer {
         case ACTIVE -> false;
       };
 
-      executeWithRetry(message.estateId(), new HandleEstateChangedCommand(message.estateId(), hide));
+      useCase.execute(new HandleEstateChangedCommand(message.estateId(), hide));
       channel.basicAck(deliveryTag, false);
     } catch (Exception e) {
-      log.error("Falha ao processar mensagem para estateId={} após {} tentativas. Enviando para DLQ.",
-          message.estateId(), MAX_RETRIES, e);
-      channel.basicNack(deliveryTag, false, false);
-    }
-  }
-
-  private void executeWithRetry(Long estateId, HandleEstateChangedCommand command) {
-    for (int attempt = 1; true; attempt++) {
-      try {
-        useCase.execute(command);
-        return;
-      } catch (Exception e) {
-        if (attempt == MAX_RETRIES) {
-          throw e;
-        }
-        long backoff = INITIAL_BACKOFF_MS * (1L << (attempt - 1));
-        log.warn("Tentativa {}/{} falhou para estateId={}. Retentando em {}ms.",
-            attempt, MAX_RETRIES, estateId, backoff);
-        try {
-          Thread.sleep(backoff);
-        } catch (InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          throw e;
-        }
+      log.error("Falha ao processar mensagem para estateId={}. Retry e DLQ são gerenciados pelo container.",
+          message.estateId(), e);
+      if (e instanceof IOException ioException) {
+        throw ioException;
       }
+      throw new RuntimeException(e);
     }
   }
 }

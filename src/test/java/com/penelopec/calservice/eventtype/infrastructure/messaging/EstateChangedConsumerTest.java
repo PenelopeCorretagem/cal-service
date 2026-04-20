@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -93,18 +94,20 @@ class EstateChangedConsumerTest {
     }
 
     @Test
-    @DisplayName("Deve chamar basicNack (sem requeue) e não chamar basicAck quando useCase lança exceção")
-    void shouldCallBasicNack_whenUseCaseThrowsException() throws Exception {
+    @DisplayName("Deve propagar exceção e não confirmar mensagem quando useCase lança exceção")
+    void shouldPropagateException_whenUseCaseThrowsException() throws Exception {
       // Given
       EstateChangedMessage message = new EstateChangedMessage(99L, EstateStatus.ACTIVE, Instant.now());
       doThrow(new RuntimeException("erro simulado")).when(useCase).execute(any());
 
       // When
-      consumer.consume(message, channel, 2L);
+      assertThatThrownBy(() -> consumer.consume(message, channel, 2L))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("erro simulado");
 
       // Then
-      verify(channel).basicNack(2L, false, false);
       verify(channel, never()).basicAck(2L, false);
+      verify(channel, never()).basicNack(2L, false, false);
     }
   }
 }

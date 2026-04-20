@@ -22,24 +22,40 @@ public final class ValidationResult {
   private final List<ValidationError> errors = new ArrayList<>();
 
   public ValidationResult addError(String field, ErrorContract code) {
-    errors.add(ValidationError.of(field, code));
+    return addError(field, code, new Object[0]);
+  }
+
+  public ValidationResult addError(String field, ErrorContract code, Object... args) {
+    errors.add(ValidationError.of(field, code, args));
     return this;
   }
 
   public ValidationResult addGlobal(ErrorContract code) {
-    errors.add(ValidationError.global(code));
+    return addGlobal(code, new Object[0]);
+  }
+
+  public ValidationResult addGlobal(ErrorContract code, Object... args) {
+    errors.add(ValidationError.global(code, args));
     return this;
   }
 
   /** Adiciona erro de campo somente se condition for true (avaliação imediata). */
   public ValidationResult addErrorIf(boolean condition, String field, ErrorContract code) {
-    if (condition) addError(field, code);
+    return addErrorIf(condition, field, code, new Object[0]);
+  }
+
+  public ValidationResult addErrorIf(boolean condition, String field, ErrorContract code, Object... args) {
+    if (condition) addError(field, code, args);
     return this;
   }
 
   /** Adiciona erro global somente se condition for true (avaliação imediata). */
   public ValidationResult addGlobalIf(boolean condition, ErrorContract code) {
-    if (condition) addGlobal(code);
+    return addGlobalIf(condition, code, new Object[0]);
+  }
+
+  public ValidationResult addGlobalIf(boolean condition, ErrorContract code, Object... args) {
+    if (condition) addGlobal(code, args);
     return this;
   }
 
@@ -49,7 +65,11 @@ public final class ValidationResult {
    * evitando consultas desnecessárias ao banco quando o command já é inválido.
    */
   public ValidationResult addErrorIf(Supplier<Boolean> condition, String field, ErrorContract code) {
-    if (!hasErrors() && Boolean.TRUE.equals(condition.get())) addError(field, code);
+    return addErrorIf(condition, field, code, new Object[0]);
+  }
+
+  public ValidationResult addErrorIf(Supplier<Boolean> condition, String field, ErrorContract code, Object... args) {
+    if (!hasErrors() && Boolean.TRUE.equals(condition.get())) addError(field, code, args);
     return this;
   }
 
@@ -57,7 +77,11 @@ public final class ValidationResult {
    * Adiciona erro global somente se o Supplier retornar true (avaliação lazy).
    */
   public ValidationResult addGlobalIf(Supplier<Boolean> condition, ErrorContract code) {
-    if (!hasErrors() && Boolean.TRUE.equals(condition.get())) addGlobal(code);
+    return addGlobalIf(condition, code, new Object[0]);
+  }
+
+  public ValidationResult addGlobalIf(Supplier<Boolean> condition, ErrorContract code, Object... args) {
+    if (!hasErrors() && Boolean.TRUE.equals(condition.get())) addGlobal(code, args);
     return this;
   }
 

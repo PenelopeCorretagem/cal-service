@@ -1,7 +1,7 @@
 package com.penelopec.calservice.eventtype.application.validator;
 
 import com.penelopec.calservice.eventtype.application.command.UpdateEventTypeCommand;
-import com.penelopec.calservice.eventtype.domain.error.EventTypeValidationCode;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,7 +47,7 @@ class UpdateEventTypeCommandValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("eventTypeId");
-      assertThat(error.code()).isEqualTo(EventTypeValidationCode.EVENT_TYPE_ID_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(EventTypeError.VALIDATION_EVENT_TYPE_ID_REQUIRED.code());
     });
   }
 
@@ -69,7 +69,7 @@ class UpdateEventTypeCommandValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("title");
-      assertThat(error.code()).isEqualTo(EventTypeValidationCode.TITLE_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(EventTypeError.VALIDATION_TITLE_REQUIRED.code());
     });
   }
 }

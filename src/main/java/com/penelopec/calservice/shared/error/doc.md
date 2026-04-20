@@ -19,7 +19,7 @@ shared/error/
 ├── http/
 │   ├── ErrorHttpStatusMapping.java
 │   ├── HttpStatusResolver.java
-│   ├── CoreHttpStatusRegistrar.java
+│   ├── CoreHttpStatusRegister.java
 │   └── GlobalExceptionHandler.java
 └── handler/
     └── GlobalExceptionHandler.java (legacy placeholder, deprecated)
@@ -84,7 +84,7 @@ Se `error` for nulo, fallback para `500`.
 
 ### Registrars
 
-- `CoreHttpStatusRegistrar`
+- `CoreHttpStatusRegister`
 - `EventTypeHttpStatusRegistrar`
 - `AppointmentHttpStatusRegistrar`
 

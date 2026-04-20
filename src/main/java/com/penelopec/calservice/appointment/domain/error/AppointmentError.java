@@ -67,6 +67,97 @@ public enum AppointmentError implements ErrorContract {
         "Agendamento id=%s não possui bookingUid — não é possível realizar a operação remota.",
         ErrorType.APPLICATION,
         ErrorSeverity.ERROR
+    ),
+
+    APPOINTMENT_ID_REQUIRED(
+        "APPT-VAL-APPOINTMENT-ID-REQUIRED",
+        "ID do agendamento é obrigatório.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    EVENT_TYPE_ID_REQUIRED(
+        "APPT-VAL-EVENT-TYPE-ID-REQUIRED",
+        "ID do tipo de evento é obrigatório.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    START_DATETIME_REQUIRED(
+        "APPT-VAL-START-DT-REQUIRED",
+        "Data/hora de início é obrigatória.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    START_DATETIME_INVALID(
+        "APPT-VAL-START-DT-INVALID",
+        "Formato de data/hora inválido para startDateTime. Use ISO-8601 (ex: 2026-04-19T10:00:00).",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    END_DATETIME_REQUIRED(
+        "APPT-VAL-END-DT-REQUIRED",
+        "Data/hora de fim é obrigatória.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    END_DATETIME_INVALID(
+        "APPT-VAL-END-DT-INVALID",
+        "Formato de data/hora inválido para endDateTime. Use ISO-8601 (ex: 2026-04-19T11:00:00).",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    ATTENDEE_NAME_REQUIRED(
+        "APPT-VAL-ATTENDEE-NAME-REQUIRED",
+        "Nome do participante é obrigatório.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    ATTENDEE_EMAIL_REQUIRED(
+        "APPT-VAL-ATTENDEE-EMAIL-REQUIRED",
+        "E-mail do participante é obrigatório.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    LIST_PAGE_INVALID(
+        "APPT-VAL-PAGE-INVALID",
+        "page deve ser maior ou igual a zero.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    LIST_SIZE_INVALID(
+        "APPT-VAL-SIZE-INVALID",
+        "size deve ser entre 1 e 100.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    LIST_STATUS_INVALID(
+        "APPT-VAL-STATUS-INVALID",
+        "status inválido: '%s'.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    LIST_START_DATETIME_INVALID(
+        "APPT-VAL-LIST-START-DT-INVALID",
+        "Formato de data/hora inválido para startDateTime. Use ISO-8601 (ex: 2026-04-19T10:00:00).",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    LIST_END_DATETIME_INVALID(
+        "APPT-VAL-LIST-END-DT-INVALID",
+        "Formato de data/hora inválido para endDateTime. Use ISO-8601 (ex: 2026-04-19T11:00:00).",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
     );
 
     private final String code;

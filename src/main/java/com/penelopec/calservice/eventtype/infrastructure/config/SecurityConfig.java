@@ -31,7 +31,8 @@ public class SecurityConfig {
     "/error",
 
     // Auth proxy
-    "/auth/**",
+    "/auth/login",
+    "/auth/validate-token",
 
     // Swagger
     "/swagger-ui/**",

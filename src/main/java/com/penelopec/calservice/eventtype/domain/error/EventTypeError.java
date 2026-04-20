@@ -88,6 +88,34 @@ public enum EventTypeError implements ErrorContract {
         "ID do imóvel não pode ser nulo.",
         ErrorType.DOMAIN,
         ErrorSeverity.WARN
+    ),
+
+    VALIDATION_TITLE_REQUIRED(
+        "ET-VAL-TITLE-REQUIRED",
+        "Título é obrigatório.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    VALIDATION_ESTATE_ID_REQUIRED(
+        "ET-VAL-ESTATE-ID-REQUIRED",
+        "estateId é obrigatório.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    VALIDATION_EVENT_TYPE_ID_REQUIRED(
+        "ET-VAL-EVENT-TYPE-ID-REQUIRED",
+        "eventTypeId é obrigatório.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    VALIDATION_ESTATE_CHANGED_ID_REQUIRED(
+        "ET-VAL-ESTATE-CHANGED-ID-REQUIRED",
+        "estateId é obrigatório para processar evento de imóvel.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
     );
 
     private final String code;

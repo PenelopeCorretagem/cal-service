@@ -1,7 +1,7 @@
 package com.penelopec.calservice.appointment.application.validator;
 
 import com.penelopec.calservice.appointment.application.command.AppointmentCommand;
-import com.penelopec.calservice.appointment.domain.error.AppointmentValidationCode;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,23 +54,23 @@ class AppointmentCommandValidatorTest {
     assertThat(result.getErrors()).hasSize(5);
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("eventTypeId");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.EVENT_TYPE_ID_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.EVENT_TYPE_ID_REQUIRED.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("attendeeName");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.ATTENDEE_NAME_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.ATTENDEE_NAME_REQUIRED.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("attendeeEmail");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.ATTENDEE_EMAIL_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.ATTENDEE_EMAIL_REQUIRED.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("startDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.START_DATETIME_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_REQUIRED.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.END_DATETIME_REQUIRED.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_REQUIRED.code());
     });
   }
 
@@ -96,11 +96,11 @@ class AppointmentCommandValidatorTest {
     assertThat(result.getErrors()).hasSize(2);
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("startDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.START_DATETIME_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_INVALID.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.END_DATETIME_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_INVALID.code());
     });
   }
 }

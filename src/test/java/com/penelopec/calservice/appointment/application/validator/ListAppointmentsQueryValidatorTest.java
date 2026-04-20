@@ -1,7 +1,7 @@
 package com.penelopec.calservice.appointment.application.validator;
 
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
-import com.penelopec.calservice.appointment.domain.error.AppointmentValidationCode;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +44,7 @@ class ListAppointmentsQueryValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).singleElement().satisfies(error -> {
       assertThat(error.field()).isEqualTo("page");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_PAGE_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.LIST_PAGE_INVALID.code());
     });
   }
 
@@ -60,7 +60,7 @@ class ListAppointmentsQueryValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).singleElement().satisfies(error -> {
       assertThat(error.field()).isEqualTo("size");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_SIZE_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.LIST_SIZE_INVALID.code());
     });
   }
 
@@ -76,7 +76,8 @@ class ListAppointmentsQueryValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).singleElement().satisfies(error -> {
       assertThat(error.field()).isEqualTo("status");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_STATUS_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.LIST_STATUS_INVALID.code());
+      assertThat(error.message()).isEqualTo("status inválido: 'unknown'.");
     });
   }
 
@@ -102,11 +103,11 @@ class ListAppointmentsQueryValidatorTest {
     assertThat(result.getErrors()).hasSize(2);
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("startDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_START_DATETIME_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.LIST_START_DATETIME_INVALID.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentValidationCode.LIST_END_DATETIME_INVALID.code());
+      assertThat(error.code()).isEqualTo(AppointmentError.LIST_END_DATETIME_INVALID.code());
     });
   }
 }

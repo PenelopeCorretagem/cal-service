@@ -2,7 +2,7 @@ package com.penelopec.calservice.appointment.application.validator;
 
 import com.penelopec.calservice.appointment.application.command.RescheduleAppointmentCommand;
 import com.penelopec.calservice.appointment.application.util.AppointmentDateTimeParser;
-import com.penelopec.calservice.appointment.domain.error.AppointmentValidationCode;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.shared.validation.CommandValidator;
 import com.penelopec.calservice.shared.validation.ValidationResult;
 
@@ -12,21 +12,21 @@ public class RescheduleAppointmentCommandValidator implements CommandValidator<R
   public ValidationResult validate(RescheduleAppointmentCommand cmd) {
     var result = new ValidationResult()
       .addErrorIf(cmd.appointmentId() == null,
-        "appointmentId", AppointmentValidationCode.APPOINTMENT_ID_REQUIRED)
+        "appointmentId", AppointmentError.APPOINTMENT_ID_REQUIRED)
       .addErrorIf(cmd.startDateTime() == null || cmd.startDateTime().isBlank(),
-        "startDateTime", AppointmentValidationCode.START_DATETIME_REQUIRED)
+        "startDateTime", AppointmentError.START_DATETIME_REQUIRED)
       .addErrorIf(cmd.endDateTime() == null || cmd.endDateTime().isBlank(),
-        "endDateTime", AppointmentValidationCode.END_DATETIME_REQUIRED);
+        "endDateTime", AppointmentError.END_DATETIME_REQUIRED);
 
     if (cmd.startDateTime() != null && !cmd.startDateTime().isBlank()) {
       result.addErrorIf(
         AppointmentDateTimeParser.parseOptional(cmd.startDateTime()).isEmpty(),
-        "startDateTime", AppointmentValidationCode.START_DATETIME_INVALID);
+        "startDateTime", AppointmentError.START_DATETIME_INVALID);
     }
     if (cmd.endDateTime() != null && !cmd.endDateTime().isBlank()) {
       result.addErrorIf(
         AppointmentDateTimeParser.parseOptional(cmd.endDateTime()).isEmpty(),
-        "endDateTime", AppointmentValidationCode.END_DATETIME_INVALID);
+        "endDateTime", AppointmentError.END_DATETIME_INVALID);
     }
 
     return result;

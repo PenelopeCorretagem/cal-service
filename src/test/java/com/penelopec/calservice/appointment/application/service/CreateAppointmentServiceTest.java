@@ -2,6 +2,7 @@ package com.penelopec.calservice.appointment.application.service;
 
 import com.penelopec.calservice.appointment.application.command.AppointmentCommand;
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.BookingResult;
@@ -26,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -102,13 +104,15 @@ class CreateAppointmentServiceTest {
         null, "2026-03-22T15:00:00",
         "Cliente Teste", "cliente@teste.com", "Primeira visita"
       );
-      // Com validator real, null em startDateTime seria ValidationException.
-      // Com validator mockado retornando result vazio, o AppointmentDateTimeParser lança IAE.
-      Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> service.execute(command));
+      doAnswer(invocation -> {
+        new ValidationResult()
+          .addError("startDateTime", AppointmentError.START_DATETIME_REQUIRED)
+          .throwIfHasErrors();
+        return null;
+      }).when(validator).validateAndThrow(command);
 
-      assertThat(thrown)
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("startDateTime");
+      assertThatThrownBy(() -> service.execute(command))
+        .isInstanceOf(ValidationException.class);
       verifyNoInteractions(bookingGateway, repository);
     }
   }
