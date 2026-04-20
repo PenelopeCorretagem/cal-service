@@ -3,7 +3,7 @@ package com.penelopec.calservice.eventtype.application.service;
 import com.penelopec.calservice.eventtype.application.port.in.SyncEventTypesUseCase;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
-import com.penelopec.calservice.eventtype.domain.gateway.EstateData;
+import com.penelopec.calservice.eventtype.domain.valueobject.EstateData;
 import com.penelopec.calservice.eventtype.domain.gateway.EstateGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import org.slf4j.Logger;

@@ -43,8 +43,12 @@ public class EstateChangedConsumer {
       useCase.execute(new HandleEstateChangedCommand(message.estateId(), hide));
       channel.basicAck(deliveryTag, false);
     } catch (Exception e) {
-      log.error("Falha ao processar mensagem para estateId={}. Enviando para DLQ.", message.estateId(), e);
-      channel.basicNack(deliveryTag, false, false);
+      log.error("Falha ao processar mensagem para estateId={}. Retry e DLQ são gerenciados pelo container.",
+          message.estateId(), e);
+      if (e instanceof IOException ioException) {
+        throw ioException;
+      }
+      throw new RuntimeException(e);
     }
   }
 }

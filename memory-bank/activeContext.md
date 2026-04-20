@@ -1,61 +1,64 @@
 # Active Context — cal-service
 
-**Última atualização**: 2026-04-05
+**Última atualização**: 2026-04-20
 
 ## Foco Atual
 
-Nenhuma tarefa em andamento. Aguardando nova demanda.
+- **TASK019 (Completed)**: consolidação de erros por contexto (`AppointmentError`/`EventTypeError`) e fechamento dos comentários pendentes de review (validacao formatada, whitelist de auth explícita, retry AMQP no container, testes alinhados).
+- **TASK018 (Completed)**: paginação unificada via `shared.pagination.Page`, com migração do fluxo de `ListAppointments` e alinhamento de contratos REST/OpenAPI.
+- **TASK017 (Completed)**: `GET /event-types` migrado para resposta paginada com `Page<T>` na camada application e contrato OpenAPI atualizado.
+- **TASK016 (Completed)**: Guia de integração de consumo da API refinado em formato endpoint-by-endpoint com request/response, observações críticas e diagramas Mermaid.
+- **TASK015 (Completed)**: alterações da branch `feat/refatoracao-integracao-cal-service` separadas em commits temáticos para revisão.
+- **TASK011 (Completed)**: Complemento pós-code-review concluído em `shared/error`, `shared/http`, `SecurityFilter`, testes de contrato e documentação.
+- **TASK014 (Completed)**: Reestruturação semântica de packages de testes `eventtype` e varredura do módulo `shared` finalizada.
+- **TASK012 (Completed)**: Hardening de infraestrutura REST finalizado com exemplos/respostas OpenAPI alinhados ao contrato `ApiErrorResponse`.
+- **TASK013 (Completed)**: Suíte de validators criada e contrato HTTP do `GlobalExceptionHandler` finalizado com cenário 405.
+
+**Próximo passo imediato**: retomar backlog técnico de média prioridade (CI/CD e estratégia de migrations).
 
 ## O Que Foi Feito Recentemente
 
-- **TASK010 concluída (2026-04-05)**: Consumer RabbitMQ implementado end-to-end.
-  - Fase A: dependência AMQP + configuração YAML + `RabbitMQConfig.java` / `RabbitMQProperties.java`.
-  - Fase B: `EstateChangedMessage.java` (record) + `EstateStatus.java` (enum).
-  - Fase C: `hide()` e `show()` idempotentes na entidade `EventType`.
-  - Fase D: `HandleEstateChangedCommand`, `HandleEstateChangedUseCase`, `HandleEstateChangedService`, bean em `EventTypeConfig`.
-  - Fase E: `EstateChangedConsumer.java` com `@RabbitListener`, tradução de status e guarda DLQ para falhas.
-  - Fase F: 12 testes novos (5+3+4). Suite total: 134 testes, 0 falhas.
-- **TASK008 concluída (2026-04-05)**: ciclo de governança contínua formalizado (`docs/governanca-continua.md`, template de retrospectiva quinzenal). Fase 4 do workspace Copilot concluída.
-- **TASK007 concluída (2026-04-05)**: prompts reutilizáveis criados (`refinar-tarefa.prompt.md`, `criar-backlog-tarefa.prompt.md`).
-- **TASK006 concluída (2026-04-05)**: skill `task-checkpoint-memory` criada em `.github/skills/`.
-- **TASK005 concluída (2026-04-05)**: agents especializados criados (`code-reviewer`, `test-designer`, `architect`).
-- **TASK004 concluída (2026-04-05)**: cobertura de testes do `appointment` completa (122 testes, BUILD SUCCESS).
-- **Fase 3 concluída (2026-04-05)**: instructions por domínio em `.github/instructions/`.
-- **Fases 0–2 concluídas (2026-04-05)**: memory bank, governança base e agents base.
-
-## Estado Atual do Projeto
-
-O `cal-service` possui:
-- **Bounded context `eventtype`**: Totalmente implementado. CRUD completo, toggle de visibilidade, sync com Cal.com, consumer RabbitMQ para mudança de status de imóvel, testes unitários passando.
-- **Bounded context `appointment`**: Completamente implementado e com cobertura de testes completa. Inclui domínio, aplicação e infraestrutura.
-- **Workspace Copilot** (meta-projeto): Fases 0–4 concluídas. 6 agents especializados, instructions por domínio, prompts reutilizáveis, skill de checkpoint e processo de governança contínua.
-
-## Próximos Passos
-
-Nenhuma tarefa em andamento. Aguardando nova demanda.
-
-## Decisões Ativas
-
-- A senha de `.env.example` não deve conter valores reais (apenas templates).
-- O scheduler de sync é desabilitado em `dev` para não poluir logs.
-- MapStruct é usado para mapeamento JPA ↔ Domain ↔ Output (sem conversão manual).
-- `reconstitute()` e `createNew()` são os únicos factory methods aceitos nas entidades de domínio.
-
-## Contexto de Integração
-
-- Cal.com API: integração ativa; adaptadores `CalComEventTypeAdapter` e `CalComBookingAdapter`.
-- Monolith: integração via `MonolithEstateAdapter` para buscar empreendimentos.
-- Ambas integrações acessam sistemas externos configurados por variáveis de ambiente.
+- Consolidados os erros de validação por bounded context:
+	- `AppointmentValidationCode` removido; codigos migrados para `AppointmentError`.
+	- `EventTypeValidationCode` removido; codigos migrados para `EventTypeError` (constantes `VALIDATION_*`).
+- `ValidationResult` atualizado com overloads que aceitam argumentos para formatação de mensagem, permitindo preencher placeholders `%s` nos erros de validação.
+- `ListAppointmentsQueryValidator` corrigido para informar o valor inválido de `status` na mensagem.
+- `SecurityConfig` (prod) ajustado para endpoints de auth explícitos (`/auth/login`, `/auth/validate-token`) no lugar de `/auth/**`.
+- `EstateChangedConsumer` deixou de usar retry com `Thread.sleep`; retry/backoff e recoverer foram configurados no `RabbitMQConfig` via `RetryInterceptorBuilder`.
+- Testes atualizados para o novo comportamento (`CreateAppointmentServiceTest`, `EstateChangedConsumerTest`, validators de `eventtype` e `appointment`).
+- `./mvnw compile` e `./mvnw test` executados com sucesso em Java 21 (171/171 testes verdes).
+- `Page<T>` movida para `shared.pagination` e reutilizada pelos fluxos de `eventtype` e `appointment`.
+- `ListAppointmentsUseCase` e `ListAppointmentsService` passaram a retornar `Page<AppointmentOutput>`.
+- `AppointmentController` e `AppointmentControllerSwagger` atualizados para resposta paginada padronizada com `content`.
+- `docs/guia-integracao-api.md` atualizado no endpoint `GET /appointments` para o novo payload.
+- Listagem de `event-types` alterada para paginação obrigatória com query params `page` e `size`.
+- Criada `Page<T>` em `shared.pagination` para evitar dependência de `org.springframework.data.domain.Page` na camada application.
+- `EventTypeControllerSwagger` e guia de integração atualizados para o novo contrato paginado.
+- Documentação de integração para consumidores externos evoluída para formato endpoint-by-endpoint com request/response por rota, erros comuns e observações importantes.
+- Diagramas Mermaid adicionados para visão de arquitetura, fluxo de autenticação e ciclo de vida de agendamento.
+- Refatoração da branch foi separada em commits por tema (auth/infra, core errors, REST/OpenAPI, testes e documentação) para facilitar code review.
+- Concluídos os itens TASK011.6, TASK011.7, TASK011.8 e TASK011.9.
+- `GlobalExceptionHandler` e `ErrorHttpStatusMapping` endurecidos com null-safety/fallbacks e proteção contra sobrescrita silenciosa.
+- Criada `RestClientBuilderFactory` e aplicada nos configs de `auth`, `eventtype` e `appointment`.
+- `LoggingInterceptor` atualizado para DEBUG, duração de chamada e mascaramento de query params sensíveis.
+- `SecurityFilter` atualizado para comportamento resiliente sem vazamento de token.
+- Testes adicionados: `GlobalExceptionHandlerTest`, `ErrorHttpStatusMappingTest`, `SecurityFilterTest`, `LoggingInterceptorTest`.
+- Docs atualizados: `shared/error/doc.md` e `shared/http/doc.md`.
+- Testes de `eventtype` foram reorganizados para packages/caminhos do bounded context (`eventtype.*`) preservando semântica.
+- TASK012.3 concluída: `EventTypeControllerSwagger` e `AppointmentControllerSwagger` atualizados com exemplos `code/severity/violations` e status documentados alinhados ao mapeamento atual.
+- TASK013 concluída com criação de 7 novos testes de validator em `eventtype`/`appointment` e ajuste de `GlobalExceptionHandlerTest` para `405 Method Not Allowed`.
+- `./mvnw compile` e `./mvnw test` executados com Java 21 após TASK013 com sucesso (suite completa verde).
 
 ## Decisões Ativas
 
-- A senha de `.env.example` não deve conter valores reais (apenas templates).
-- O scheduler de sync é desabilitado em `dev` para não poluir logs.
-- MapStruct é usado para mapeamento JPA ↔ Domain ↔ Output (sem conversão manual).
-- `reconstitute()` e `createNew()` são os únicos factory methods aceitos nas entidades de domínio.
+- Exceptions por camada permanecem mandatórias (`DomainException`, `GatewayException`, `ApplicationException`, `ValidationException`).
+- Mapeamento HTTP é centralizado em registry/registrars (`shared/error/http`) sem acoplamento do domínio a HTTP.
+- Erros de validação foram consolidados em `AppointmentError` e `EventTypeError`; enums de validação separados foram removidos.
+- Retry de processamento RabbitMQ permanece no container/listener advice chain (sem `Thread.sleep` no consumer).
+- `reconstitute()` e `createNew()` seguem como únicos factory methods válidos em entidades de domínio.
 
 ## Contexto de Integração
 
-- Cal.com API: integração ativa; adaptadores `CalComEventTypeAdapter` e `CalComBookingAdapter`.
-- Monolith: integração via `MonolithEstateAdapter` para buscar empreendimentos.
-- Ambas integrações acessam sistemas externos configurados por variáveis de ambiente.
+- Cal.com via adapters `CalComEventTypeAdapter` e `CalComBookingAdapter`.
+- Monolith via `MonolithEstateAdapter`.
+- Auth service via `AuthServiceAdapter` e `ValidateTokenUseCase` no filtro de segurança.

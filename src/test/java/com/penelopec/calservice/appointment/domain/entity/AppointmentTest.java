@@ -1,6 +1,8 @@
 package com.penelopec.calservice.appointment.domain.entity;
 
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,52 +24,52 @@ class AppointmentTest {
     @Test
     @DisplayName("Deve criar agendamento com status PENDING e duracao calculada")
     void shouldCreateAppointmentWithPendingStatusAndCalculatedDuration_whenDatesAreValid() {
-      // When
-      Appointment appointment = Appointment.createNew(1L, 2L, 3L, 4L, START, END);
+      Appointment appointment = Appointment.createNew(1L, 2L, 3L, START, END,
+        "Cliente Teste", "cliente@teste.com", "Primeira visita");
 
-      // Then
       assertThat(appointment.getId()).isNull();
       assertThat(appointment.getBookingUid()).isNull();
       assertThat(appointment.getEventTypeId()).isEqualTo(1L);
       assertThat(appointment.getClientId()).isEqualTo(2L);
       assertThat(appointment.getEstateAgentId()).isEqualTo(3L);
-      assertThat(appointment.getEstateId()).isEqualTo(4L);
       assertThat(appointment.getStatus()).isEqualTo(Status.PENDING);
       assertThat(appointment.getDurationMinutes()).isEqualTo(60);
       assertThat(appointment.getStartDateTime()).isEqualTo(START);
       assertThat(appointment.getEndDateTime()).isEqualTo(END);
+      assertThat(appointment.getAttendeeName()).isEqualTo("Cliente Teste");
+      assertThat(appointment.getAttendeeEmail()).isEqualTo("cliente@teste.com");
+      assertThat(appointment.getNotes()).isEqualTo("Primeira visita");
+      assertThat(appointment.getReason()).isNull();
       assertThat(appointment.getCreatedAt()).isNotNull();
       assertThat(appointment.getUpdatedAt()).isNotNull();
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalArgumentException quando startDateTime e nulo")
+    @DisplayName("Deve lancar DomainException quando startDateTime e nulo")
     void shouldThrowException_whenStartDateTimeIsNull() {
-      // When / Then
-      assertThatThrownBy(() -> Appointment.createNew(1L, 2L, 3L, 4L, null, END))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("obrigatórias");
+      assertThatThrownBy(() -> Appointment.createNew(1L, 2L, 3L, null, END,
+        "Cliente", "c@t.com", null))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.MISSING_DATETIMES));
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalArgumentException quando endDateTime e nulo")
+    @DisplayName("Deve lancar DomainException quando endDateTime e nulo")
     void shouldThrowException_whenEndDateTimeIsNull() {
-      // When / Then
-      assertThatThrownBy(() -> Appointment.createNew(1L, 2L, 3L, 4L, START, null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("obrigatórias");
+      assertThatThrownBy(() -> Appointment.createNew(1L, 2L, 3L, START, null,
+        "Cliente", "c@t.com", null))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.MISSING_DATETIMES));
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalArgumentException quando endDateTime nao e posterior a startDateTime")
+    @DisplayName("Deve lancar DomainException quando endDateTime nao e posterior a startDateTime")
     void shouldThrowException_whenEndDateTimeIsNotAfterStartDateTime() {
-      // Given
       LocalDateTime sameTime = START;
-
-      // When / Then
-      assertThatThrownBy(() -> Appointment.createNew(1L, 2L, 3L, 4L, START, sameTime))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("posterior");
+      assertThatThrownBy(() -> Appointment.createNew(1L, 2L, 3L, START, sameTime,
+        "Cliente", "c@t.com", null))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_DATES));
     }
   }
 
@@ -78,26 +80,27 @@ class AppointmentTest {
     @Test
     @DisplayName("Deve reconstituir agendamento com todos os campos")
     void shouldReconstituteAppointmentWithAllFields_whenAllFieldsAreProvided() {
-      // Given
       LocalDateTime now = LocalDateTime.now();
-
-      // When
       Appointment appointment = Appointment.reconstitute(
-        10L, "booking-uid", 1L, 2L, 3L, 4L,
-        60, Status.CONFIRMED, START, END, now, now
+        10L, "booking-uid", 1L, 2L, 3L,
+        Status.CONFIRMED, START, END,
+        "Cliente Teste", "cliente@teste.com", "Notas", "Motivo",
+        now, now
       );
 
-      // Then
       assertThat(appointment.getId()).isEqualTo(10L);
       assertThat(appointment.getBookingUid()).isEqualTo("booking-uid");
       assertThat(appointment.getEventTypeId()).isEqualTo(1L);
       assertThat(appointment.getClientId()).isEqualTo(2L);
       assertThat(appointment.getEstateAgentId()).isEqualTo(3L);
-      assertThat(appointment.getEstateId()).isEqualTo(4L);
       assertThat(appointment.getDurationMinutes()).isEqualTo(60);
       assertThat(appointment.getStatus()).isEqualTo(Status.CONFIRMED);
       assertThat(appointment.getStartDateTime()).isEqualTo(START);
       assertThat(appointment.getEndDateTime()).isEqualTo(END);
+      assertThat(appointment.getAttendeeName()).isEqualTo("Cliente Teste");
+      assertThat(appointment.getAttendeeEmail()).isEqualTo("cliente@teste.com");
+      assertThat(appointment.getNotes()).isEqualTo("Notas");
+      assertThat(appointment.getReason()).isEqualTo("Motivo");
     }
   }
 
@@ -108,14 +111,11 @@ class AppointmentTest {
     @Test
     @DisplayName("Deve atribuir bookingUid e atualizar updatedAt")
     void shouldAssignBookingUidAndUpdateTimestamp_whenCalled() {
-      // Given
-      Appointment appointment = Appointment.createNew(1L, 2L, 3L, 4L, START, END);
+      Appointment appointment = Appointment.createNew(1L, 2L, 3L, START, END,
+        "Cliente", "c@t.com", null);
       LocalDateTime beforeAssign = LocalDateTime.now().minusSeconds(1);
-
-      // When
       appointment.assignBookingUid("uid-abc-123");
 
-      // Then
       assertThat(appointment.getBookingUid()).isEqualTo("uid-abc-123");
       assertThat(appointment.getUpdatedAt()).isAfterOrEqualTo(beforeAssign);
     }
@@ -128,38 +128,28 @@ class AppointmentTest {
     @Test
     @DisplayName("Deve alterar status para CONFIRMED quando status e PENDING")
     void shouldChangeStatusToConfirmed_whenStatusIsPending() {
-      // Given
-      Appointment appointment = Appointment.createNew(1L, 2L, 3L, 4L, START, END);
-
-      // When
+      Appointment appointment = Appointment.createNew(1L, 2L, 3L, START, END,
+        "Cliente", "c@t.com", null);
       appointment.confirm();
-
-      // Then
       assertThat(appointment.getStatus()).isEqualTo(Status.CONFIRMED);
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalStateException ao confirmar agendamento CANCELLED")
+    @DisplayName("Deve lancar DomainException ao confirmar agendamento CANCELLED")
     void shouldThrowException_whenStatusIsCancelled() {
-      // Given
       Appointment appointment = reconstituted(Status.CANCELLED);
-
-      // When / Then
       assertThatThrownBy(appointment::confirm)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("CANCELLED");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_STATUS_TRANSITION));
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalStateException ao confirmar agendamento CONCLUDED")
+    @DisplayName("Deve lancar DomainException ao confirmar agendamento CONCLUDED")
     void shouldThrowException_whenStatusIsConcluded() {
-      // Given
       Appointment appointment = reconstituted(Status.CONCLUDED);
-
-      // When / Then
       assertThatThrownBy(appointment::confirm)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("CONCLUDED");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_STATUS_TRANSITION));
     }
   }
 
@@ -168,40 +158,31 @@ class AppointmentTest {
   class Cancel {
 
     @Test
-    @DisplayName("Deve alterar status para CANCELLED quando status e PENDING")
-    void shouldChangeStatusToCancelled_whenStatusIsPending() {
-      // Given
-      Appointment appointment = Appointment.createNew(1L, 2L, 3L, 4L, START, END);
-
-      // When
-      appointment.cancel();
-
-      // Then
+    @DisplayName("Deve alterar status para CANCELLED e armazenar motivo")
+    void shouldChangeStatusToCancelledAndStoreReason_whenStatusIsPending() {
+      Appointment appointment = Appointment.createNew(1L, 2L, 3L, START, END,
+        "Cliente", "c@t.com", null);
+      appointment.cancel("Cliente desistiu");
       assertThat(appointment.getStatus()).isEqualTo(Status.CANCELLED);
+      assertThat(appointment.getReason()).isEqualTo("Cliente desistiu");
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalStateException ao cancelar agendamento ja CANCELLED")
+    @DisplayName("Deve lancar DomainException ao cancelar agendamento ja CANCELLED")
     void shouldThrowException_whenStatusIsAlreadyCancelled() {
-      // Given
       Appointment appointment = reconstituted(Status.CANCELLED);
-
-      // When / Then
-      assertThatThrownBy(appointment::cancel)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("CANCELLED");
+      assertThatThrownBy(() -> appointment.cancel("Motivo"))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_STATUS_TRANSITION));
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalStateException ao cancelar agendamento CONCLUDED")
+    @DisplayName("Deve lancar DomainException ao cancelar agendamento CONCLUDED")
     void shouldThrowException_whenStatusIsConcluded() {
-      // Given
       Appointment appointment = reconstituted(Status.CONCLUDED);
-
-      // When / Then
-      assertThatThrownBy(appointment::cancel)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("CONCLUDED");
+      assertThatThrownBy(() -> appointment.cancel("Motivo"))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_STATUS_TRANSITION));
     }
   }
 
@@ -212,26 +193,18 @@ class AppointmentTest {
     @Test
     @DisplayName("Deve alterar status para CONCLUDED quando status e CONFIRMED")
     void shouldChangeStatusToConcluded_whenStatusIsConfirmed() {
-      // Given
       Appointment appointment = reconstituted(Status.CONFIRMED);
-
-      // When
       appointment.conclude();
-
-      // Then
       assertThat(appointment.getStatus()).isEqualTo(Status.CONCLUDED);
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalStateException ao concluir agendamento CANCELLED")
+    @DisplayName("Deve lancar DomainException ao concluir agendamento CANCELLED")
     void shouldThrowException_whenStatusIsCancelled() {
-      // Given
       Appointment appointment = reconstituted(Status.CANCELLED);
-
-      // When / Then
       assertThatThrownBy(appointment::conclude)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("cancelado");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_STATUS_TRANSITION));
     }
   }
 
@@ -240,53 +213,47 @@ class AppointmentTest {
   class Reschedule {
 
     @Test
-    @DisplayName("Deve atualizar datas e duracao quando status e PENDING")
-    void shouldUpdateDatesAndDuration_whenStatusIsPending() {
-      // Given
-      Appointment appointment = Appointment.createNew(1L, 2L, 3L, 4L, START, END);
+    @DisplayName("Deve atualizar datas e armazenar motivo quando status e PENDING")
+    void shouldUpdateDatesAndStoreReason_whenStatusIsPending() {
+      Appointment appointment = Appointment.createNew(1L, 2L, 3L, START, END,
+        "Cliente", "c@t.com", null);
       LocalDateTime newStart = LocalDateTime.parse("2026-03-23T14:00:00");
       LocalDateTime newEnd = LocalDateTime.parse("2026-03-23T15:30:00");
+      appointment.reschedule(newStart, newEnd, "Conflito de agenda");
 
-      // When
-      appointment.reschedule(newStart, newEnd);
-
-      // Then
       assertThat(appointment.getStartDateTime()).isEqualTo(newStart);
       assertThat(appointment.getEndDateTime()).isEqualTo(newEnd);
       assertThat(appointment.getDurationMinutes()).isEqualTo(90);
+      assertThat(appointment.getReason()).isEqualTo("Conflito de agenda");
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalStateException ao reagendar agendamento CANCELLED")
+    @DisplayName("Deve lancar DomainException ao reagendar agendamento CANCELLED")
     void shouldThrowException_whenStatusIsCancelled() {
-      // Given
       Appointment appointment = reconstituted(Status.CANCELLED);
       LocalDateTime newStart = LocalDateTime.parse("2026-03-23T14:00:00");
       LocalDateTime newEnd = LocalDateTime.parse("2026-03-23T15:30:00");
-
-      // When / Then
-      assertThatThrownBy(() -> appointment.reschedule(newStart, newEnd))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("CANCELLED");
+      assertThatThrownBy(() -> appointment.reschedule(newStart, newEnd, "Motivo"))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_STATUS_TRANSITION));
     }
 
     @Test
-    @DisplayName("Deve lancar IllegalArgumentException quando newEnd nao e posterior a newStart")
+    @DisplayName("Deve lancar DomainException quando newEnd nao e posterior a newStart")
     void shouldThrowException_whenNewEndIsNotAfterNewStart() {
-      // Given
-      Appointment appointment = Appointment.createNew(1L, 2L, 3L, 4L, START, END);
-
-      // When / Then
-      assertThatThrownBy(() -> appointment.reschedule(START, START))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("posterior");
+      Appointment appointment = Appointment.createNew(1L, 2L, 3L, START, END,
+        "Cliente", "c@t.com", null);
+      assertThatThrownBy(() -> appointment.reschedule(START, START, "Motivo"))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.INVALID_DATES));
     }
   }
 
   private Appointment reconstituted(Status status) {
     return Appointment.reconstitute(
-      1L, "booking-uid", 1L, 2L, 3L, 4L,
-      60, status, START, END,
+      1L, "booking-uid", 1L, 2L, 3L,
+      status, START, END,
+      "Cliente Teste", "cliente@teste.com", "Notas", null,
       LocalDateTime.parse("2026-03-20T09:00:00"),
       LocalDateTime.parse("2026-03-20T09:00:00")
     );

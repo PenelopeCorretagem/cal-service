@@ -2,22 +2,12 @@ package com.penelopec.calservice.appointment.infrastructure.persistence.reposito
 
 import com.penelopec.calservice.appointment.infrastructure.persistence.entity.AppointmentJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
-public interface AppointmentJpaRepository extends JpaRepository<AppointmentJpaEntity, Long> {
+public interface AppointmentJpaRepository extends JpaRepository<AppointmentJpaEntity, Long>,
+    JpaSpecificationExecutor<AppointmentJpaEntity> {
 
   Optional<AppointmentJpaEntity> findByBookingUid(String bookingUid);
-
-  List<AppointmentJpaEntity> findByClientId(Long clientId);
-
-  List<AppointmentJpaEntity> findByEstateAgentId(Long estateAgentId);
-
-  List<AppointmentJpaEntity> findByEstateId(Long estateId);
-
-  List<AppointmentJpaEntity> findByStatus(String status);
-
-  List<AppointmentJpaEntity> findByStartDateTimeBetween(LocalDateTime start, LocalDateTime end);
 }

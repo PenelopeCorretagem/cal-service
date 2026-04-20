@@ -1,11 +1,11 @@
 package com.penelopec.calservice.appointment.infrastructure.controller;
 
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
-import com.penelopec.calservice.appointment.application.output.ListAppointmentsOutput;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CreateAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.RescheduleAppointmentRequest;
-import com.penelopec.calservice.eventtype.infrastructure.controller.dto.ApiErrorResponse;
+import com.penelopec.calservice.shared.error.core.ApiErrorResponse;
+import com.penelopec.calservice.shared.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -57,11 +57,14 @@ public interface AppointmentControllerSwagger {
               "eventTypeId": 100,
               "clientId": 10,
               "estateAgentId": 20,
-              "estateId": 30,
               "durationMinutes": 60,
               "status": "PENDING",
               "startDateTime": "2026-04-10T14:00:00",
               "endDateTime": "2026-04-10T15:00:00",
+              "attendeeName": "Maria Silva",
+              "attendeeEmail": "maria@email.com",
+              "notes": "Primeira visita ao empreendimento",
+              "reason": null,
               "createdAt": "2026-03-22T10:00:00",
               "updatedAt": "2026-03-22T10:00:00"
             }"""
@@ -78,13 +81,18 @@ public interface AppointmentControllerSwagger {
           name = "Erro de validação",
           value = """
             {
-              "status": 422,
-              "error": "Unprocessable Content",
-              "message": "Erro de validação",
-              "path": "/appointments",
               "timestamp": "2026-03-22T10:00:00Z",
-              "fieldErrors": [
-                {"field": "startDateTime", "message": "startDateTime é obrigatório"}
+              "status": 422,
+              "code": "CORE-VALIDATION",
+              "message": "Dados inválidos na requisição.",
+              "path": "/appointments",
+              "severity": "WARN",
+              "violations": [
+                {
+                  "field": "startDateTime",
+                  "message": "startDateTime é obrigatório",
+                  "code": "NotNull"
+                }
               ]
             }"""
         )
@@ -105,11 +113,12 @@ public interface AppointmentControllerSwagger {
           name = "Erro de integração",
           value = """
             {
+              "timestamp": "2026-03-22T10:00:00Z",
               "status": 502,
-              "error": "Bad Gateway",
-              "message": "Falha ao criar booking no Cal.com",
+              "code": "APT-BOOKING-CREATE-FAILED",
+              "message": "Falha ao criar booking no serviço externo.",
               "path": "/appointments",
-              "timestamp": "2026-03-22T10:00:00Z"
+              "severity": "ERROR"
             }"""
         )
       )
@@ -142,11 +151,14 @@ public interface AppointmentControllerSwagger {
               "eventTypeId": 100,
               "clientId": 10,
               "estateAgentId": 20,
-              "estateId": 30,
               "durationMinutes": 60,
-              "status": "PENDING",
+              "status": "CONFIRMED",
               "startDateTime": "2026-04-10T14:00:00",
               "endDateTime": "2026-04-10T15:00:00",
+              "attendeeName": "Maria Silva",
+              "attendeeEmail": "maria@email.com",
+              "notes": "Primeira visita ao empreendimento",
+              "reason": null,
               "createdAt": "2026-03-22T10:00:00",
               "updatedAt": "2026-03-22T10:00:00"
             }"""
@@ -163,11 +175,12 @@ public interface AppointmentControllerSwagger {
           name = "Não encontrado",
           value = """
             {
+              "timestamp": "2026-03-22T10:00:00Z",
               "status": 404,
-              "error": "Not Found",
-              "message": "Agendamento não encontrado: 999",
+              "code": "APT-NOT-FOUND",
+              "message": "Agendamento não encontrado: 999.",
               "path": "/appointments/999",
-              "timestamp": "2026-03-22T10:00:00Z"
+              "severity": "WARN"
             }"""
         )
       )
@@ -188,9 +201,10 @@ public interface AppointmentControllerSwagger {
   // ──────────────────────────────────────────────
 
   @Operation(
-    summary = "Listar todos os agendamentos",
-    description = "Retorna agendamentos com filtros opcionais e paginação. "
-      + "Caso não haja resultados, retorna lista vazia com metadados da página."
+    summary = "Listar agendamentos",
+    description = "Retorna agendamentos com filtros opcionais e **paginação obrigatória**. "
+      + "Valores padrão: page=0, size=20 (máximo 100). "
+      + "É possível filtrar por empreendimento (estateId) via tipo de evento associado."
   )
   @ApiResponses({
     @ApiResponse(
@@ -198,23 +212,26 @@ public interface AppointmentControllerSwagger {
       description = "Lista paginada de agendamentos retornada com sucesso",
       content = @Content(
         mediaType = "application/json",
-        schema = @Schema(implementation = ListAppointmentsOutput.class),
+        schema = @Schema(implementation = Page.class),
         examples = @ExampleObject(
           name = "Lista paginada",
           value = """
             {
-              "appointments": [
+              "content": [
                 {
                   "id": 1,
                   "bookingUid": "bk_abc123",
                   "eventTypeId": 100,
                   "clientId": 10,
                   "estateAgentId": 20,
-                  "estateId": 30,
                   "durationMinutes": 60,
                   "status": "PENDING",
                   "startDateTime": "2026-04-10T14:00:00",
                   "endDateTime": "2026-04-10T15:00:00",
+                  "attendeeName": "Maria Silva",
+                  "attendeeEmail": "maria@email.com",
+                  "notes": "Primeira visita",
+                  "reason": null,
                   "createdAt": "2026-03-22T10:00:00",
                   "updatedAt": "2026-03-22T10:00:00"
                 }
@@ -233,15 +250,15 @@ public interface AppointmentControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })
-  ResponseEntity<ListAppointmentsOutput> listAll(
+  ResponseEntity<Page<AppointmentOutput>> listAll(
     @Parameter(description = "Filtra por cliente", example = "10") @RequestParam(required = false) Long clientId,
     @Parameter(description = "Filtra por corretor", example = "20") @RequestParam(required = false) Long estateAgentId,
-    @Parameter(description = "Filtra por empreendimento", example = "30") @RequestParam(required = false) Long estateId,
+    @Parameter(description = "Filtra por empreendimento (via tipo de evento)", example = "30") @RequestParam(required = false) Long estateId,
     @Parameter(description = "Filtra por status (PENDING, CONFIRMED, CANCELLED, CONCLUDED)", example = "PENDING") @RequestParam(required = false) String status,
     @Parameter(description = "Data/hora inicial (ISO-8601)", example = "2026-04-10T14:00:00") @RequestParam(required = false) String startDateTime,
     @Parameter(description = "Data/hora final (ISO-8601)", example = "2026-04-10T18:00:00") @RequestParam(required = false) String endDateTime,
-    @Parameter(description = "Página (base 0)", example = "0") @RequestParam(required = false) Integer page,
-    @Parameter(description = "Tamanho da página", example = "20") @RequestParam(required = false) Integer size
+    @Parameter(description = "Página (base 0, padrão 0)", example = "0") @RequestParam(defaultValue = "0") Integer page,
+    @Parameter(description = "Tamanho da página (padrão 20, máximo 100)", example = "20") @RequestParam(defaultValue = "20") Integer size
   );
 
   // ──────────────────────────────────────────────
@@ -252,7 +269,8 @@ public interface AppointmentControllerSwagger {
     summary = "Reagendar agendamento",
     description = "Reagenda um agendamento existente para um novo horário. "
       + "A API atualiza o booking no Cal.com e persiste a alteração localmente. "
-      + "Só é permitido reagendar agendamentos com status **não terminal** (PENDING ou CONFIRMED)."
+      + "Só é permitido reagendar agendamentos com status **não terminal** (PENDING ou CONFIRMED). "
+      + "O motivo do reagendamento é armazenado para auditoria."
   )
   @ApiResponses({
     @ApiResponse(
@@ -270,11 +288,14 @@ public interface AppointmentControllerSwagger {
               "eventTypeId": 100,
               "clientId": 10,
               "estateAgentId": 20,
-              "estateId": 30,
-              "durationMinutes": 60,
+              "durationMinutes": 90,
               "status": "PENDING",
               "startDateTime": "2026-04-12T16:00:00",
-              "endDateTime": "2026-04-12T17:00:00",
+              "endDateTime": "2026-04-12T17:30:00",
+              "attendeeName": "Maria Silva",
+              "attendeeEmail": "maria@email.com",
+              "notes": "Primeira visita",
+              "reason": "Conflito de agenda",
               "createdAt": "2026-03-22T10:00:00",
               "updatedAt": "2026-03-22T15:00:00"
             }"""
@@ -291,18 +312,19 @@ public interface AppointmentControllerSwagger {
           name = "Não encontrado",
           value = """
             {
+              "timestamp": "2026-03-22T10:00:00Z",
               "status": 404,
-              "error": "Not Found",
-              "message": "Agendamento não encontrado: 999",
+              "code": "APT-NOT-FOUND",
+              "message": "Agendamento não encontrado: 999.",
               "path": "/appointments/999/reschedule",
-              "timestamp": "2026-03-22T10:00:00Z"
+              "severity": "WARN"
             }"""
         )
       )
     ),
     @ApiResponse(
-      responseCode = "422",
-      description = "Status terminal ou datas inválidas",
+      responseCode = "409",
+      description = "Conflito de estado do agendamento",
       content = @Content(
         mediaType = "application/json",
         schema = @Schema(implementation = ApiErrorResponse.class),
@@ -310,11 +332,12 @@ public interface AppointmentControllerSwagger {
           name = "Status terminal",
           value = """
             {
-              "status": 422,
-              "error": "Unprocessable Content",
+              "timestamp": "2026-03-22T10:00:00Z",
+              "status": 409,
+              "code": "APT-INVALID-STATUS-TRANSITION",
               "message": "Não é possível reagendar agendamento com status CANCELLED",
               "path": "/appointments/1/reschedule",
-              "timestamp": "2026-03-22T10:00:00Z"
+              "severity": "WARN"
             }"""
         )
       )
@@ -344,7 +367,7 @@ public interface AppointmentControllerSwagger {
     summary = "Cancelar agendamento",
     description = "Cancela um agendamento existente no Cal.com e atualiza o status local para **CANCELLED**. "
       + "Só é permitido cancelar agendamentos com status **não terminal** (PENDING ou CONFIRMED). "
-      + "O motivo do cancelamento é opcional."
+      + "O motivo do cancelamento é armazenado para auditoria."
   )
   @ApiResponses({
     @ApiResponse(
@@ -362,11 +385,14 @@ public interface AppointmentControllerSwagger {
               "eventTypeId": 100,
               "clientId": 10,
               "estateAgentId": 20,
-              "estateId": 30,
               "durationMinutes": 60,
               "status": "CANCELLED",
               "startDateTime": "2026-04-10T14:00:00",
               "endDateTime": "2026-04-10T15:00:00",
+              "attendeeName": "Maria Silva",
+              "attendeeEmail": "maria@email.com",
+              "notes": "Primeira visita",
+              "reason": "Cliente desistiu da visita",
               "createdAt": "2026-03-22T10:00:00",
               "updatedAt": "2026-03-22T16:00:00"
             }"""
@@ -383,30 +409,32 @@ public interface AppointmentControllerSwagger {
           name = "Não encontrado",
           value = """
             {
+              "timestamp": "2026-03-22T10:00:00Z",
               "status": 404,
-              "error": "Not Found",
-              "message": "Agendamento não encontrado: 999",
+              "code": "APT-NOT-FOUND",
+              "message": "Agendamento não encontrado: 999.",
               "path": "/appointments/999/cancel",
-              "timestamp": "2026-03-22T10:00:00Z"
+              "severity": "WARN"
             }"""
         )
       )
     ),
     @ApiResponse(
-      responseCode = "422",
-      description = "Agendamento já possui status terminal",
+      responseCode = "409",
+      description = "Conflito de estado do agendamento",
       content = @Content(
         mediaType = "application/json",
         schema = @Schema(implementation = ApiErrorResponse.class),
         examples = @ExampleObject(
-          name = "Já cancelado",
+          name = "Status terminal",
           value = """
             {
-              "status": 422,
-              "error": "Unprocessable Content",
-              "message": "Não é possível cancelar agendamento com status CANCELLED",
+              "timestamp": "2026-03-22T10:00:00Z",
+              "status": 409,
+              "code": "APT-INVALID-STATUS-TRANSITION",
+              "message": "Não é possível cancelar agendamento com status CONCLUDED",
               "path": "/appointments/1/cancel",
-              "timestamp": "2026-03-22T10:00:00Z"
+              "severity": "WARN"
             }"""
         )
       )
@@ -434,14 +462,38 @@ public interface AppointmentControllerSwagger {
 
   @Operation(
     summary = "Confirmar agendamento",
-    description = "Confirma um agendamento local alterando o status para **CONFIRMED**. "
-      + "Fluxo executado exclusivamente via serviços internos da API."
+    description = "Confirma um agendamento com status **PENDING**. "
+      + "Agendamentos com status terminal (CANCELLED ou CONCLUDED) não podem ser confirmados."
   )
   @ApiResponses({
     @ApiResponse(
       responseCode = "200",
       description = "Agendamento confirmado com sucesso",
-      content = @Content(mediaType = "application/json", schema = @Schema(implementation = AppointmentOutput.class))
+      content = @Content(
+        mediaType = "application/json",
+        schema = @Schema(implementation = AppointmentOutput.class),
+        examples = @ExampleObject(
+          name = "Agendamento confirmado",
+          value = """
+            {
+              "id": 1,
+              "bookingUid": "bk_abc123",
+              "eventTypeId": 100,
+              "clientId": 10,
+              "estateAgentId": 20,
+              "durationMinutes": 60,
+              "status": "CONFIRMED",
+              "startDateTime": "2026-04-10T14:00:00",
+              "endDateTime": "2026-04-10T15:00:00",
+              "attendeeName": "Maria Silva",
+              "attendeeEmail": "maria@email.com",
+              "notes": "Primeira visita",
+              "reason": null,
+              "createdAt": "2026-03-22T10:00:00",
+              "updatedAt": "2026-03-22T11:00:00"
+            }"""
+        )
+      )
     ),
     @ApiResponse(
       responseCode = "404",
@@ -449,8 +501,13 @@ public interface AppointmentControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(
-      responseCode = "422",
-      description = "Transição de estado inválida",
+      responseCode = "409",
+      description = "Conflito de estado do agendamento",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou inválido",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })
@@ -465,14 +522,38 @@ public interface AppointmentControllerSwagger {
 
   @Operation(
     summary = "Concluir agendamento",
-    description = "Conclui um agendamento local alterando o status para **CONCLUDED**. "
-      + "Fluxo executado exclusivamente via serviços internos da API."
+    description = "Conclui um agendamento. "
+      + "Agendamentos com status **CANCELLED** não podem ser concluídos."
   )
   @ApiResponses({
     @ApiResponse(
       responseCode = "200",
       description = "Agendamento concluído com sucesso",
-      content = @Content(mediaType = "application/json", schema = @Schema(implementation = AppointmentOutput.class))
+      content = @Content(
+        mediaType = "application/json",
+        schema = @Schema(implementation = AppointmentOutput.class),
+        examples = @ExampleObject(
+          name = "Agendamento concluído",
+          value = """
+            {
+              "id": 1,
+              "bookingUid": "bk_abc123",
+              "eventTypeId": 100,
+              "clientId": 10,
+              "estateAgentId": 20,
+              "durationMinutes": 60,
+              "status": "CONCLUDED",
+              "startDateTime": "2026-04-10T14:00:00",
+              "endDateTime": "2026-04-10T15:00:00",
+              "attendeeName": "Maria Silva",
+              "attendeeEmail": "maria@email.com",
+              "notes": "Primeira visita",
+              "reason": null,
+              "createdAt": "2026-03-22T10:00:00",
+              "updatedAt": "2026-04-10T15:30:00"
+            }"""
+        )
+      )
     ),
     @ApiResponse(
       responseCode = "404",
@@ -480,8 +561,13 @@ public interface AppointmentControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(
-      responseCode = "422",
-      description = "Transição de estado inválida",
+      responseCode = "409",
+      description = "Conflito de estado do agendamento",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou inválido",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })
@@ -496,34 +582,15 @@ public interface AppointmentControllerSwagger {
 
   @Operation(
     summary = "Excluir agendamento",
-    description = "Remove um agendamento do banco de dados local. "
-      + "Se o agendamento possuir um booking associado no Cal.com, este será cancelado automaticamente antes da exclusão. "
-      + "Retorna **204 No Content** em caso de sucesso."
+    description = "Exclui um agendamento do banco de dados local. "
+      + "Se houver um **bookingUid** vinculado, também cancela o booking no Cal.com."
   )
   @ApiResponses({
-    @ApiResponse(
-      responseCode = "204",
-      description = "Agendamento excluído com sucesso",
-      content = @Content
-    ),
+    @ApiResponse(responseCode = "204", description = "Agendamento excluído com sucesso"),
     @ApiResponse(
       responseCode = "404",
       description = "Agendamento não encontrado",
-      content = @Content(
-        mediaType = "application/json",
-        schema = @Schema(implementation = ApiErrorResponse.class),
-        examples = @ExampleObject(
-          name = "Não encontrado",
-          value = """
-            {
-              "status": 404,
-              "error": "Not Found",
-              "message": "Agendamento não encontrado: 999",
-              "path": "/appointments/999",
-              "timestamp": "2026-03-22T10:00:00Z"
-            }"""
-        )
-      )
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(
       responseCode = "401",
@@ -532,7 +599,7 @@ public interface AppointmentControllerSwagger {
     ),
     @ApiResponse(
       responseCode = "502",
-      description = "Falha na comunicação com o Cal.com ao cancelar o booking associado",
+      description = "Falha na comunicação com o Cal.com",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })

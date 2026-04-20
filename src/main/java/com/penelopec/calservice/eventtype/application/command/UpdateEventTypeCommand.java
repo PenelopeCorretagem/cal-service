@@ -6,9 +6,4 @@ public record UpdateEventTypeCommand(
   String description,
   Integer lengthInMinutes,
   Integer minimumBookingNotice
-) {
-  public UpdateEventTypeCommand {
-    if (eventTypeId == null)
-      throw new IllegalArgumentException("ID do EventType é obrigatório");
-  }
-}
+) { }

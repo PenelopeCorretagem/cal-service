@@ -1,9 +1,8 @@
 package com.penelopec.calservice.eventtype.application.port.in;
 
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
-
-import java.util.List;
+import com.penelopec.calservice.shared.pagination.Page;
 
 public interface ListEventTypesUseCase {
-  List<EventTypeOutput> execute();
+  Page<EventTypeOutput> execute(int page, int size);
 }

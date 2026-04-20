@@ -4,8 +4,9 @@ import com.penelopec.calservice.eventtype.application.mapper.EventTypeOutputMapp
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
 import com.penelopec.calservice.eventtype.application.port.in.GetEventTypeUseCase;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeNotFoundException;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 
 public class GetEventTypeService implements GetEventTypeUseCase {
@@ -22,8 +23,7 @@ public class GetEventTypeService implements GetEventTypeUseCase {
   @Override
   public EventTypeOutput execute(Long eventTypeId) {
     EventType eventType = calComGateway.findById(eventTypeId)
-      .orElseThrow(() -> new EventTypeNotFoundException(
-        "EventType não encontrado no Cal.com: " + eventTypeId));
+      .orElseThrow(() -> new DomainException(EventTypeError.NOT_FOUND, eventTypeId));
 
     if (eventType.getEstateId() == null) {
       EventType finalEventType = eventType;

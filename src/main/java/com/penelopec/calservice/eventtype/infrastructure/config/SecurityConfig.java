@@ -30,6 +30,10 @@ public class SecurityConfig {
   private static final String[] AUTH_WHITELIST = {
     "/error",
 
+    // Auth proxy
+    "/auth/login",
+    "/auth/validate-token",
+
     // Swagger
     "/swagger-ui/**",
     "/api-docs/**",

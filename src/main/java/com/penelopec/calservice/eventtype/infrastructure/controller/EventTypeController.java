@@ -4,14 +4,15 @@ import com.penelopec.calservice.eventtype.application.command.CreateEventTypeCom
 import com.penelopec.calservice.eventtype.application.command.UpdateEventTypeCommand;
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
 import com.penelopec.calservice.eventtype.application.port.in.*;
+import com.penelopec.calservice.eventtype.infrastructure.controller.doc.EventTypeControllerSwagger;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.CreateEventTypeRequest;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.UpdateEventTypeRequest;
+import com.penelopec.calservice.shared.pagination.Page;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequestMapping("/event-types")
@@ -65,8 +66,11 @@ public class EventTypeController implements EventTypeControllerSwagger {
 
   @Override
   @GetMapping
-  public ResponseEntity<List<EventTypeOutput>> listAll() {
-    List<EventTypeOutput> output = listEventTypesUseCase.execute();
+  public ResponseEntity<Page<EventTypeOutput>> listAll(
+    @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "20") int size
+  ) {
+    Page<EventTypeOutput> output = listEventTypesUseCase.execute(page, size);
     return ResponseEntity.ok(output);
   }
 

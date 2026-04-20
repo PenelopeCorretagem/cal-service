@@ -2,7 +2,8 @@ package com.penelopec.calservice.appointment.application.service;
 
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
-import com.penelopec.calservice.appointment.domain.exception.AppointmentNotFoundException;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
 import org.junit.jupiter.api.DisplayName;
@@ -22,11 +23,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class GetAppointmentServiceTest {
 
-  @Mock
-  private AppointmentRepository repository;
-
-  @InjectMocks
-  private GetAppointmentService service;
+  @Mock private AppointmentRepository repository;
+  @InjectMocks private GetAppointmentService service;
 
   @Nested
   @DisplayName("execute")
@@ -35,46 +33,36 @@ class GetAppointmentServiceTest {
     @Test
     @DisplayName("Deve retornar agendamento quando registro existe")
     void shouldReturnAppointment_whenAppointmentExists() {
-      // Given
       Appointment appointment = Appointment.reconstitute(
-        1L,
-        "booking-123",
-        11L,
-        22L,
-        33L,
-        44L,
-        60,
+        1L, "booking-123", 11L, 22L, 33L,
         Status.PENDING,
         LocalDateTime.parse("2026-03-22T10:00:00"),
         LocalDateTime.parse("2026-03-22T11:00:00"),
+        "Cliente Teste", "cliente@teste.com", "Notas", null,
         LocalDateTime.parse("2026-03-20T09:00:00"),
         LocalDateTime.parse("2026-03-20T09:00:00")
       );
       when(repository.findById(1L)).thenReturn(Optional.of(appointment));
 
-      // When
       AppointmentOutput output = service.execute(1L);
 
-      // Then
       assertThat(output.id()).isEqualTo(1L);
       assertThat(output.bookingUid()).isEqualTo("booking-123");
       assertThat(output.status()).isEqualTo("PENDING");
+      assertThat(output.attendeeName()).isEqualTo("Cliente Teste");
+      assertThat(output.attendeeEmail()).isEqualTo("cliente@teste.com");
     }
 
     @Test
     @DisplayName("Deve lancar excecao quando agendamento nao existe")
     void shouldThrowException_whenAppointmentDoesNotExist() {
-      // Given
       when(repository.findById(99L)).thenReturn(Optional.empty());
 
-      // When
       Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> service.execute(99L));
 
-      // Then
       assertThat(thrown)
-        .isInstanceOf(AppointmentNotFoundException.class)
-        .hasMessageContaining("Agendamento")
-        .hasMessageContaining("99");
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.NOT_FOUND));
     }
   }
 }

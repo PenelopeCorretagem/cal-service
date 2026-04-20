@@ -1,8 +1,9 @@
 package com.penelopec.calservice.appointment.application.usecase;
 
-import com.penelopec.calservice.appointment.application.output.ListAppointmentsOutput;
+import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
+import com.penelopec.calservice.shared.pagination.Page;
 
 public interface ListAppointmentsUseCase {
-    ListAppointmentsOutput execute(ListAppointmentsQuery query);
+    Page<AppointmentOutput> execute(ListAppointmentsQuery query);
 }

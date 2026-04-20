@@ -4,8 +4,9 @@ import com.penelopec.calservice.eventtype.application.mapper.EventTypeOutputMapp
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
 import com.penelopec.calservice.eventtype.application.port.in.ToggleEventTypeVisibilityUseCase;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
-import com.penelopec.calservice.eventtype.domain.exception.EventTypeNotFoundException;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 
 public class ToggleEventTypeVisibilityService implements ToggleEventTypeVisibilityUseCase {
@@ -22,8 +23,7 @@ public class ToggleEventTypeVisibilityService implements ToggleEventTypeVisibili
   @Override
   public EventTypeOutput execute(Long eventTypeId) {
     EventType eventType = eventTypeRepository.findById(eventTypeId)
-      .orElseThrow(() -> new EventTypeNotFoundException(
-        "EventType não encontrado: " + eventTypeId));
+      .orElseThrow(() -> new DomainException(EventTypeError.NOT_FOUND, eventTypeId));
 
     eventType.toggleHidden();
 
