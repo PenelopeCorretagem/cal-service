@@ -4,6 +4,7 @@ import com.penelopec.calservice.eventtype.application.command.CreateEventTypeCom
 import com.penelopec.calservice.eventtype.application.command.UpdateEventTypeCommand;
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
 import com.penelopec.calservice.eventtype.application.port.in.*;
+import com.penelopec.calservice.eventtype.infrastructure.controller.doc.EventTypeControllerSwagger;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.CreateEventTypeRequest;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.UpdateEventTypeRequest;
 import jakarta.validation.Valid;

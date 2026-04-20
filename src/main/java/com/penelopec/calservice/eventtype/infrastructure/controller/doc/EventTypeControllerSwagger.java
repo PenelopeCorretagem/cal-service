@@ -1,7 +1,7 @@
-package com.penelopec.calservice.eventtype.infrastructure.controller;
+package com.penelopec.calservice.eventtype.infrastructure.controller.doc;
 
 import com.penelopec.calservice.eventtype.application.output.EventTypeOutput;
-import com.penelopec.calservice.eventtype.infrastructure.controller.dto.ApiErrorResponse;
+import com.penelopec.calservice.shared.error.core.ApiErrorResponse;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.CreateEventTypeRequest;
 import com.penelopec.calservice.eventtype.infrastructure.controller.dto.UpdateEventTypeRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,7 +58,7 @@ public interface EventTypeControllerSwagger {
         schema = @Schema(implementation = ApiErrorResponse.class),
         examples = @ExampleObject(
           name = "Erro de validação",
-          value = "{\"status\": 422, \"error\": \"Unprocessable Entity\", \"message\": \"Erro de validação\", \"path\": \"/event-types\", \"timestamp\": \"2026-03-07T14:30:00Z\", \"fieldErrors\": [{\"field\": \"title\", \"message\": \"Título é obrigatório\"}]}"
+          value = "{\"timestamp\":\"2026-03-07T14:30:00Z\",\"status\":422,\"code\":\"CORE-VALIDATION\",\"message\":\"Dados inválidos na requisição.\",\"path\":\"/event-types\",\"severity\":\"WARN\",\"violations\":[{\"field\":\"title\",\"message\":\"Título é obrigatório\",\"code\":\"NotBlank\"}]}"
         )
       )
     ),
@@ -71,8 +71,8 @@ public interface EventTypeControllerSwagger {
       )
     ),
     @ApiResponse(
-      responseCode = "500",
-      description = "Erro interno — falha na comunicação com o Cal.com ou no processamento",
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
       content = @Content(
         mediaType = "application/json",
         schema = @Schema(implementation = ApiErrorResponse.class)
@@ -107,7 +107,7 @@ public interface EventTypeControllerSwagger {
         schema = @Schema(implementation = ApiErrorResponse.class),
         examples = @ExampleObject(
           name = "Não encontrado",
-          value = "{\"status\": 404, \"error\": \"Not Found\", \"message\": \"EventType não encontrado no Cal.com: 999\", \"path\": \"/event-types/999\", \"timestamp\": \"2026-03-07T14:30:00Z\"}"
+          value = "{\"timestamp\":\"2026-03-07T14:30:00Z\",\"status\":404,\"code\":\"ET-NOT-FOUND\",\"message\":\"EventType não encontrado: 999.\",\"path\":\"/event-types/999\",\"severity\":\"WARN\"}"
         )
       )
     ),
@@ -182,7 +182,7 @@ public interface EventTypeControllerSwagger {
         schema = @Schema(implementation = ApiErrorResponse.class),
         examples = @ExampleObject(
           name = "Não encontrado",
-          value = "{\"status\": 404, \"error\": \"Not Found\", \"message\": \"EventType não encontrado: 999\", \"path\": \"/event-types/999\", \"timestamp\": \"2026-03-07T14:30:00Z\"}"
+          value = "{\"timestamp\":\"2026-03-07T14:30:00Z\",\"status\":404,\"code\":\"ET-NOT-FOUND\",\"message\":\"EventType não encontrado: 999.\",\"path\":\"/event-types/999\",\"severity\":\"WARN\"}"
         )
       )
     ),
@@ -197,8 +197,8 @@ public interface EventTypeControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(
-      responseCode = "500",
-      description = "Erro interno — falha na comunicação com o Cal.com",
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })
@@ -234,14 +234,14 @@ public interface EventTypeControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(
-      responseCode = "500",
-      description = "Erro interno — falha na comunicação com o Cal.com",
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
       content = @Content(
         mediaType = "application/json",
         schema = @Schema(implementation = ApiErrorResponse.class),
         examples = @ExampleObject(
           name = "Erro de exclusão",
-          value = "{\"status\": 500, \"error\": \"Internal Server Error\", \"message\": \"Falha ao deletar EventType 123\", \"path\": \"/event-types/123\", \"timestamp\": \"2026-03-07T14:30:00Z\"}"
+          value = "{\"timestamp\":\"2026-03-07T14:30:00Z\",\"status\":502,\"code\":\"ET-DELETION-FAILED\",\"message\":\"Falha ao deletar EventType no serviço externo.\",\"path\":\"/event-types/123\",\"severity\":\"ERROR\"}"
         )
       )
     )
@@ -284,8 +284,8 @@ public interface EventTypeControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(
-      responseCode = "500",
-      description = "Erro interno — falha na comunicação com o Cal.com",
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     )
   })
