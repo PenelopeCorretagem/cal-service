@@ -1,0 +1,86 @@
+package com.penelopec.calservice.appointment.application.validator;
+
+import com.penelopec.calservice.appointment.application.command.RescheduleAppointmentCommand;
+import com.penelopec.calservice.appointment.domain.error.AppointmentValidationCode;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class RescheduleAppointmentCommandValidatorTest {
+
+  private final RescheduleAppointmentCommandValidator validator = new RescheduleAppointmentCommandValidator();
+
+  @Test
+  void shouldReturnNoErrors_whenCommandIsValid() {
+    // Given
+    var command = new RescheduleAppointmentCommand(
+      100L,
+      "2026-04-19T10:00:00",
+      "2026-04-19T11:00:00",
+      "Conflito de agenda"
+    );
+
+    // When
+    var result = validator.validate(command);
+
+    // Then
+    assertThat(result.hasErrors()).isFalse();
+    assertThat(result.getErrors()).isEmpty();
+  }
+
+  @Test
+  void shouldReturnRequiredErrors_whenMandatoryFieldsAreMissing() {
+    // Given
+    var command = new RescheduleAppointmentCommand(
+      null,
+      " ",
+      null,
+      "Conflito de agenda"
+    );
+
+    // When
+    var result = validator.validate(command);
+
+    // Then
+    assertThat(result.hasErrors()).isTrue();
+    assertThat(result.getErrors()).hasSize(3);
+    assertThat(result.getErrors()).anySatisfy(error -> {
+      assertThat(error.field()).isEqualTo("appointmentId");
+      assertThat(error.code()).isEqualTo(AppointmentValidationCode.APPOINTMENT_ID_REQUIRED.code());
+    });
+    assertThat(result.getErrors()).anySatisfy(error -> {
+      assertThat(error.field()).isEqualTo("startDateTime");
+      assertThat(error.code()).isEqualTo(AppointmentValidationCode.START_DATETIME_REQUIRED.code());
+    });
+    assertThat(result.getErrors()).anySatisfy(error -> {
+      assertThat(error.field()).isEqualTo("endDateTime");
+      assertThat(error.code()).isEqualTo(AppointmentValidationCode.END_DATETIME_REQUIRED.code());
+    });
+  }
+
+  @Test
+  void shouldReturnDatetimeInvalidErrors_whenDatetimeFormatIsInvalid() {
+    // Given
+    var command = new RescheduleAppointmentCommand(
+      100L,
+      "invalid-start",
+      "invalid-end",
+      "Conflito de agenda"
+    );
+
+    // When
+    var result = validator.validate(command);
+
+    // Then
+    assertThat(result.hasErrors()).isTrue();
+    assertThat(result.getErrors()).hasSize(2);
+    assertThat(result.getErrors()).anySatisfy(error -> {
+      assertThat(error.field()).isEqualTo("startDateTime");
+      assertThat(error.code()).isEqualTo(AppointmentValidationCode.START_DATETIME_INVALID.code());
+    });
+    assertThat(result.getErrors()).anySatisfy(error -> {
+      assertThat(error.field()).isEqualTo("endDateTime");
+      assertThat(error.code()).isEqualTo(AppointmentValidationCode.END_DATETIME_INVALID.code());
+    });
+  }
+}
