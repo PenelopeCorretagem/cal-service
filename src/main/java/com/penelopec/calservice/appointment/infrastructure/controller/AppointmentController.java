@@ -57,7 +57,6 @@ public class AppointmentController implements AppointmentControllerSwagger {
       request.clientId(),
       request.estateAgentId(),
       request.startDateTime(),
-      request.endDateTime(),
       request.attendeeName(),
       request.attendeeEmail(),
       request.notes()
@@ -112,7 +111,6 @@ public class AppointmentController implements AppointmentControllerSwagger {
     var command = new RescheduleAppointmentCommand(
       id,
       request.startDateTime(),
-      request.endDateTime(),
       request.reason()
     );
 

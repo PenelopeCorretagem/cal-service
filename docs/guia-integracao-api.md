@@ -474,7 +474,6 @@ Sem body.
 | clientId | long | Sim | nao nulo |
 | estateAgentId | long | Sim | nao nulo |
 | startDateTime | string | Sim | ISO-8601 |
-| endDateTime | string | Sim | ISO-8601 |
 | attendeeName | string | Sim (regra de negocio) | nao vazio |
 | attendeeEmail | string | Sim (regra de negocio) | nao vazio |
 | notes | string | Nao | livre |
@@ -487,7 +486,6 @@ Sem body.
   "clientId": 10,
   "estateAgentId": 20,
   "startDateTime": "2026-04-10T14:00:00",
-  "endDateTime": "2026-04-10T15:00:00",
   "attendeeName": "Maria Silva",
   "attendeeEmail": "maria@email.com",
   "notes": "Primeira visita ao empreendimento"
@@ -525,12 +523,14 @@ Body (`AppointmentOutput`):
 
 | HTTP | Codigo esperado | Quando ocorre |
 |---|---|---|
+| 409 | APT-SCHEDULE-CONFLICT | horario ja ocupado para o corretor |
 | 422 | CORE-VALIDATION / APPT-VAL-* | payload invalido |
 | 401 | CORE-UNAUTHORIZED | sem token/invalid token |
 | 502 | APT-BOOKING-CREATE-FAILED | falha ao criar booking externo |
 
 **Observacoes importantes**
 
+- A duracao do agendamento e fixa em 60 minutos (calculada automaticamente a partir de `startDateTime`).
 - Mesmo se DTO permitir `attendeeName`/`attendeeEmail` nulos, regra de negocio exige os campos.
 
 ---
@@ -641,7 +641,6 @@ Body (`AppointmentOutput`):
 | Campo | Tipo | Obrigatorio | Regra |
 |---|---|---|---|
 | startDateTime | string | Sim | ISO-8601 |
-| endDateTime | string | Sim | ISO-8601 e posterior ao inicio |
 | reason | string | Nao | motivo do reagendamento |
 
 **Exemplo request**
@@ -649,7 +648,6 @@ Body (`AppointmentOutput`):
 ```json
 {
   "startDateTime": "2026-04-12T16:00:00",
-  "endDateTime": "2026-04-12T17:30:00",
   "reason": "Conflito de agenda"
 }
 ```
@@ -663,13 +661,14 @@ Body (`AppointmentOutput`):
 | HTTP | Codigo esperado | Quando ocorre |
 |---|---|---|
 | 404 | APT-NOT-FOUND | agendamento inexistente |
-| 409 | APT-INVALID-STATUS-TRANSITION | status terminal |
-| 422 | APPT-VAL-START-DT-INVALID / APPT-VAL-END-DT-INVALID | data/hora invalida |
+| 409 | APT-INVALID-STATUS-TRANSITION / APT-SCHEDULE-CONFLICT | status terminal ou horario ocupado |
+| 422 | APPT-VAL-START-DT-INVALID | data/hora invalida |
 | 502 | APT-BOOKING-RESCHEDULE-FAILED | falha na integracao externa |
 
 **Observacoes importantes**
 
 - Reagendamento nao e permitido quando status ja for terminal.
+- O novo `bookingUid` retornado pelo Cal.com passa a ser persistido apos o reagendamento.
 
 ---
 
@@ -767,7 +766,7 @@ Body (`AppointmentOutput`):
 
 **Objetivo:** excluir agendamento local e cancelar remoto quando aplicavel.
 
-**Autenticacao:** obrigatoria.
+**Autenticacao:** obrigatoria (somente ADMIN).
 
 **Request body:** nao possui.
 
@@ -781,6 +780,7 @@ Sem body.
 |---|---|---|
 | 404 | APT-NOT-FOUND | agendamento inexistente |
 | 401 | CORE-UNAUTHORIZED | sem token/invalid token |
+| 403 | CORE-FORBIDDEN | usuario sem permissao para excluir |
 | 502 | APT-BOOKING-CANCEL-FAILED | falha no cancelamento remoto |
 
 **Observacoes importantes**

@@ -6,16 +6,21 @@ import com.penelopec.calservice.appointment.application.output.AppointmentOutput
 import com.penelopec.calservice.appointment.application.usecase.CreateAppointmentUseCase;
 import com.penelopec.calservice.appointment.application.util.AppointmentDateTimeParser;
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
+import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.BookingResult;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.CreateBookingRequest;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.shared.validation.CommandValidator;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 
 public class CreateAppointmentService implements CreateAppointmentUseCase {
+
+  private static final int DEFAULT_DURATION_MINUTES = 60;
+  private static final ZoneId BRAZIL_TIME_ZONE = ZoneId.of("America/Sao_Paulo");
 
   private final CalComBookingGateway bookingGateway;
   private final AppointmentRepository repository;
@@ -34,7 +39,12 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
     validator.validateAndThrow(command);
 
     LocalDateTime start = AppointmentDateTimeParser.parseRequired(command.startDateTime(), "startDateTime");
-    LocalDateTime end = AppointmentDateTimeParser.parseRequired(command.endDateTime(), "endDateTime");
+    LocalDateTime end = start.plusMinutes(DEFAULT_DURATION_MINUTES);
+
+    if (command.estateAgentId() != null
+      && repository.existsActiveByEstateAgentAndStartDateTime(command.estateAgentId(), start)) {
+      throw new DomainException(AppointmentError.SCHEDULE_CONFLICT);
+    }
 
     Appointment appointment = Appointment.createNew(
       command.eventTypeId(),
@@ -49,8 +59,8 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
 
     BookingResult result = bookingGateway.createBooking(new CreateBookingRequest(
       command.eventTypeId(),
-      start.atOffset(ZoneOffset.UTC),
-      end.atOffset(ZoneOffset.UTC),
+      start.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
+      end.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
       command.attendeeName(),
       command.attendeeEmail(),
       command.notes()

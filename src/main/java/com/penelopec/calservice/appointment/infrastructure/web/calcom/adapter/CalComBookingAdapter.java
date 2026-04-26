@@ -41,10 +41,8 @@ public class CalComBookingAdapter implements CalComBookingGateway {
     CalComBookingRequest body = CalComBookingRequest.of(
       request.eventTypeId(),
       request.startTime(),
-      request.endTime(),
       request.attendeeName(),
-      request.attendeeEmail(),
-      request.notes()
+      request.attendeeEmail()
     );
 
     try {
@@ -70,12 +68,12 @@ public class CalComBookingAdapter implements CalComBookingGateway {
                                          OffsetDateTime newEndTime, String reason) {
     log.info("Reagendando booking uid={} no Cal.com", bookingUid);
 
-    CalComRescheduleRequest body = new CalComRescheduleRequest(newStartTime, newEndTime, reason);
+    CalComRescheduleRequest body = new CalComRescheduleRequest(newStartTime);
 
     try {
       CalComBookingResponse response = Optional.ofNullable(
           restExecutor.executeOrNull(SYSTEM, () ->
-            restClient.patch()
+            restClient.post()
               .uri("/v2/bookings/{uid}/reschedule", bookingUid)
               .body(body)
               .retrieve()
@@ -94,7 +92,7 @@ public class CalComBookingAdapter implements CalComBookingGateway {
   public BookingResult cancelBooking(String bookingUid, String reason) {
     log.info("Cancelando booking uid={} no Cal.com", bookingUid);
 
-    CalComCancelRequest body = new CalComCancelRequest(reason, false);
+    CalComCancelRequest body = CalComCancelRequest.of(reason);
 
     try {
       CalComBookingResponse response = Optional.ofNullable(

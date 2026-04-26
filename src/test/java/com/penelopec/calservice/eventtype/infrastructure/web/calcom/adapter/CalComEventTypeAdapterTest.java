@@ -2,6 +2,7 @@ package com.penelopec.calservice.eventtype.infrastructure.web.calcom.adapter;
 
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
+import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.adapter.CalComEventTypeAdapter;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComApiResponse;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComEventTypeRequest;
@@ -51,6 +52,9 @@ class CalComEventTypeAdapterTest {
 
   @Mock
   private RestExecutor restExecutor;
+
+  @Mock
+  private EventTypeRepository eventTypeRepository;
 
   @InjectMocks
   private CalComEventTypeAdapter adapter;
@@ -290,13 +294,16 @@ class CalComEventTypeAdapterTest {
         .body(ArgumentMatchers.<ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>>any()))
         .thenReturn(new CalComApiResponse<>("success", response, null));
 
+      when(eventTypeRepository.findById(eventTypeId))
+        .thenReturn(Optional.of(EventType.reconstitute(eventTypeId, "Visita", "visita", "Desc", 60, 120, false, 99L)));
+
       // When
       Optional<EventType> result = adapter.findById(eventTypeId);
 
       // Then
       assertThat(result).isPresent();
       assertThat(result.get().getId()).isEqualTo(77L);
-      assertThat(result.get().getEstateId()).isNull();
+      assertThat(result.get().getEstateId()).isEqualTo(99L);
     }
 
     @Test
