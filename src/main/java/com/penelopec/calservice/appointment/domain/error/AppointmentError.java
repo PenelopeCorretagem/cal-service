@@ -48,6 +48,13 @@ public enum AppointmentError implements ErrorContract {
         ErrorSeverity.WARN
     ),
 
+    SCHEDULE_CONFLICT(
+        "APT-SCHEDULE-CONFLICT",
+        "Já existe um agendamento ativo para este corretor na data e horário informados.",
+        ErrorType.DOMAIN,
+        ErrorSeverity.WARN
+    ),
+
     INVALID_DATES(
         "APT-INVALID-DATES",
         "Data fim deve ser posterior à data início.",

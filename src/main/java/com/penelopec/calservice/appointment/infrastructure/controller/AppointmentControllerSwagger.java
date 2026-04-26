@@ -34,6 +34,7 @@ public interface AppointmentControllerSwagger {
     summary = "Criar agendamento",
     description = "Cria um novo agendamento no Cal.com e persiste o vínculo no banco de dados local. "
       + "O backend é o único responsável pela comunicação com o Cal.com — o frontend apenas envia a requisição para esta API. "
+      + "A duração do agendamento é fixa (60 minutos), calculada automaticamente a partir do startDateTime. "
       + "Após a criação, o **bookingUid** retornado identifica o agendamento no Cal.com."
   )
   @ApiResponses({
@@ -94,6 +95,26 @@ public interface AppointmentControllerSwagger {
                   "code": "NotNull"
                 }
               ]
+            }"""
+        )
+      )
+    ),
+    @ApiResponse(
+      responseCode = "409",
+      description = "Conflito de horário para o corretor",
+      content = @Content(
+        mediaType = "application/json",
+        schema = @Schema(implementation = ApiErrorResponse.class),
+        examples = @ExampleObject(
+          name = "Conflito de horário",
+          value = """
+            {
+              "timestamp": "2026-03-22T10:00:00Z",
+              "status": 409,
+              "code": "APT-SCHEDULE-CONFLICT",
+              "message": "Já existe um agendamento ativo para este corretor na data e horário informados.",
+              "path": "/appointments",
+              "severity": "WARN"
             }"""
         )
       )
@@ -268,6 +289,7 @@ public interface AppointmentControllerSwagger {
   @Operation(
     summary = "Reagendar agendamento",
     description = "Reagenda um agendamento existente para um novo horário. "
+      + "A duração permanece fixa em 60 minutos e o backend passa a usar o novo bookingUid retornado pelo Cal.com. "
       + "A API atualiza o booking no Cal.com e persiste a alteração localmente. "
       + "Só é permitido reagendar agendamentos com status **não terminal** (PENDING ou CONFIRMED). "
       + "O motivo do reagendamento é armazenado para auditoria."
@@ -284,14 +306,14 @@ public interface AppointmentControllerSwagger {
           value = """
             {
               "id": 1,
-              "bookingUid": "bk_abc123",
+              "bookingUid": "bk_def456",
               "eventTypeId": 100,
               "clientId": 10,
               "estateAgentId": 20,
-              "durationMinutes": 90,
+              "durationMinutes": 60,
               "status": "PENDING",
               "startDateTime": "2026-04-12T16:00:00",
-              "endDateTime": "2026-04-12T17:30:00",
+              "endDateTime": "2026-04-12T17:00:00",
               "attendeeName": "Maria Silva",
               "attendeeEmail": "maria@email.com",
               "notes": "Primeira visita",
@@ -583,6 +605,7 @@ public interface AppointmentControllerSwagger {
   @Operation(
     summary = "Excluir agendamento",
     description = "Exclui um agendamento do banco de dados local. "
+      + "A operação é restrita a usuários com perfil ADMIN. "
       + "Se houver um **bookingUid** vinculado, também cancela o booking no Cal.com."
   )
   @ApiResponses({
@@ -595,6 +618,11 @@ public interface AppointmentControllerSwagger {
     @ApiResponse(
       responseCode = "401",
       description = "Token JWT ausente ou inválido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "403",
+      description = "Usuário sem permissão para excluir agendamento",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(

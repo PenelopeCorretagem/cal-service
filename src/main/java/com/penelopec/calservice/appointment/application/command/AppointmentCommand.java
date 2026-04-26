@@ -5,7 +5,6 @@ public record AppointmentCommand(
     Long clientId,
     Long estateAgentId,
     String startDateTime,
-    String endDateTime,
     String attendeeName,
     String attendeeEmail,
     String notes) { }

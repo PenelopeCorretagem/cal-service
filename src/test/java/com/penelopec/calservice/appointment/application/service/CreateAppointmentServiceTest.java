@@ -9,6 +9,7 @@ import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.CreateBookingRequest;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.shared.validation.ValidationException;
 import com.penelopec.calservice.shared.validation.CommandValidator;
 import com.penelopec.calservice.shared.validation.ValidationResult;
@@ -24,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -53,7 +53,7 @@ class CreateAppointmentServiceTest {
     void shouldCreateAppointmentOnGatewayAndPersistLocally_whenCommandIsValid() {
       AppointmentCommand command = new AppointmentCommand(
         101L, 202L, 303L,
-        "2026-03-22T14:00:00", "2026-03-22T15:00:00",
+        "2026-03-22T14:00:00",
         "Cliente Teste", "cliente@teste.com", "Primeira visita"
       );
       BookingResult bookingResult = new BookingResult(
@@ -61,6 +61,10 @@ class CreateAppointmentServiceTest {
         OffsetDateTime.parse("2026-03-22T14:00:00Z"),
         OffsetDateTime.parse("2026-03-22T15:00:00Z")
       );
+      when(repository.existsActiveByEstateAgentAndStartDateTime(
+        303L,
+        LocalDateTime.parse("2026-03-22T14:00:00")))
+        .thenReturn(false);
       when(bookingGateway.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResult);
       when(repository.save(any(Appointment.class))).thenAnswer(invocation -> {
         Appointment appointment = invocation.getArgument(0);
@@ -77,8 +81,8 @@ class CreateAppointmentServiceTest {
 
       CreateBookingRequest request = gatewayCaptor.getValue();
       assertThat(request.eventTypeId()).isEqualTo(101L);
-      assertThat(request.startTime()).isEqualTo(LocalDateTime.parse("2026-03-22T14:00:00").atOffset(ZoneOffset.UTC));
-      assertThat(request.endTime()).isEqualTo(LocalDateTime.parse("2026-03-22T15:00:00").atOffset(ZoneOffset.UTC));
+      assertThat(request.startTime()).isEqualTo(OffsetDateTime.parse("2026-03-22T14:00:00-03:00"));
+      assertThat(request.endTime()).isEqualTo(OffsetDateTime.parse("2026-03-22T15:00:00-03:00"));
       assertThat(request.attendeeName()).isEqualTo("Cliente Teste");
       assertThat(request.attendeeEmail()).isEqualTo("cliente@teste.com");
       assertThat(request.notes()).isEqualTo("Primeira visita");
@@ -97,11 +101,33 @@ class CreateAppointmentServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lancar excecao quando ja existe agendamento ativo no mesmo horario")
+    void shouldThrowException_whenScheduleSlotIsAlreadyTaken() {
+      AppointmentCommand command = new AppointmentCommand(
+        101L, 202L, 303L,
+        "2026-03-22T14:00:00",
+        "Cliente Teste", "cliente@teste.com", "Primeira visita"
+      );
+
+      when(repository.existsActiveByEstateAgentAndStartDateTime(
+        303L,
+        LocalDateTime.parse("2026-03-22T14:00:00")))
+        .thenReturn(true);
+
+      assertThatThrownBy(() -> service.execute(command))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.SCHEDULE_CONFLICT));
+
+      verify(bookingGateway, never()).createBooking(any(CreateBookingRequest.class));
+      verify(repository, never()).save(any(Appointment.class));
+    }
+
+    @Test
     @DisplayName("Deve lancar excecao quando startDateTime nao e informado")
     void shouldThrowException_whenStartDateTimeIsMissing() {
       AppointmentCommand command = new AppointmentCommand(
         101L, 202L, 303L,
-        null, "2026-03-22T15:00:00",
+        null,
         "Cliente Teste", "cliente@teste.com", "Primeira visita"
       );
       doAnswer(invocation -> {

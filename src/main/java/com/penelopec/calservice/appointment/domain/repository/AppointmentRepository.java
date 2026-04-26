@@ -12,6 +12,12 @@ public interface AppointmentRepository {
 
   Optional<Appointment> findById(Long id);
 
+  boolean existsActiveByEstateAgentAndStartDateTime(Long estateAgentId, LocalDateTime startDateTime);
+
+  boolean existsActiveByEstateAgentAndStartDateTimeExcludingId(Long estateAgentId,
+                                                               LocalDateTime startDateTime,
+                                                               Long excludedId);
+
   PageResult<Appointment> findByFilters(Long clientId, Long estateAgentId, Long estateId,
                                         Status status, LocalDateTime startDate,
                                         LocalDateTime endDate, int page, int size);

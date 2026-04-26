@@ -5,9 +5,7 @@ import java.time.OffsetDateTime;
 public record CalComBookingRequest(
   Long eventTypeId,
   OffsetDateTime start,
-  OffsetDateTime end,
-  CalComAttendee attendee,
-  String notes
+  CalComAttendee attendee
 ) {
 
   public record CalComAttendee(
@@ -16,14 +14,12 @@ public record CalComBookingRequest(
     String timeZone
   ) {}
 
-  public static CalComBookingRequest of(Long eventTypeId, OffsetDateTime start, OffsetDateTime end,
-                                        String attendeeName, String attendeeEmail, String notes) {
+  public static CalComBookingRequest of(Long eventTypeId, OffsetDateTime start,
+                                        String attendeeName, String attendeeEmail) {
     return new CalComBookingRequest(
       eventTypeId,
       start,
-      end,
-      new CalComAttendee(attendeeName, attendeeEmail, "America/Sao_Paulo"),
-      notes
+      new CalComAttendee(attendeeName, attendeeEmail, "America/Sao_Paulo")
     );
   }
 }

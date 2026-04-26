@@ -1,6 +1,8 @@
 package com.penelopec.calservice.eventtype.infrastructure.messaging;
 
+import com.penelopec.calservice.eventtype.application.command.CreateEventTypeCommand;
 import com.penelopec.calservice.eventtype.application.command.HandleEstateChangedCommand;
+import com.penelopec.calservice.eventtype.application.port.in.CreateEventTypeUseCase;
 import com.penelopec.calservice.eventtype.application.port.in.HandleEstateChangedUseCase;
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
@@ -17,10 +19,13 @@ public class EstateChangedConsumer {
 
   private static final Logger log = LoggerFactory.getLogger(EstateChangedConsumer.class);
 
-  private final HandleEstateChangedUseCase useCase;
+  private final HandleEstateChangedUseCase handleEstateChangedUseCase;
+  private final CreateEventTypeUseCase createEventTypeUseCase;
 
-  public EstateChangedConsumer(HandleEstateChangedUseCase useCase) {
-    this.useCase = useCase;
+  public EstateChangedConsumer(HandleEstateChangedUseCase handleEstateChangedUseCase,
+                               CreateEventTypeUseCase createEventTypeUseCase) {
+    this.handleEstateChangedUseCase = handleEstateChangedUseCase;
+    this.createEventTypeUseCase = createEventTypeUseCase;
   }
 
   @RabbitListener(queues = "${rabbitmq.queues.estate-changed}",
@@ -40,7 +45,20 @@ public class EstateChangedConsumer {
         case ACTIVE -> false;
       };
 
-      useCase.execute(new HandleEstateChangedCommand(message.estateId(), hide));
+      if (EstateChangedMessage.ACTION_CREATED.equals(message.action())) {
+        log.info("Processando criação de evento para estateId={}", message.estateId());
+        createEventTypeUseCase.execute(new CreateEventTypeCommand(
+            message.title(),
+            message.description(),
+            30, // Default lengthInMinutes
+            60, // Default minimumBookingNotice
+            hide,
+            message.estateId()
+        ));
+      } else {
+        handleEstateChangedUseCase.execute(new HandleEstateChangedCommand(message.estateId(), hide));
+      }
+      
       channel.basicAck(deliveryTag, false);
     } catch (Exception e) {
       log.error("Falha ao processar mensagem para estateId={}. Retry e DLQ são gerenciados pelo container.",

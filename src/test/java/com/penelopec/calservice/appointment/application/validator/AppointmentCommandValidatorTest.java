@@ -18,7 +18,6 @@ class AppointmentCommandValidatorTest {
       20L,
       30L,
       "2026-04-19T10:00:00",
-      "2026-04-19T11:00:00",
       "Cliente Teste",
       "cliente@teste.com",
       "Primeira visita"
@@ -40,7 +39,6 @@ class AppointmentCommandValidatorTest {
       20L,
       30L,
       " ",
-      null,
       " ",
       " ",
       "Notas"
@@ -51,7 +49,7 @@ class AppointmentCommandValidatorTest {
 
     // Then
     assertThat(result.hasErrors()).isTrue();
-    assertThat(result.getErrors()).hasSize(5);
+    assertThat(result.getErrors()).hasSize(4);
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("eventTypeId");
       assertThat(error.code()).isEqualTo(AppointmentError.EVENT_TYPE_ID_REQUIRED.code());
@@ -68,10 +66,6 @@ class AppointmentCommandValidatorTest {
       assertThat(error.field()).isEqualTo("startDateTime");
       assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_REQUIRED.code());
     });
-    assertThat(result.getErrors()).anySatisfy(error -> {
-      assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_REQUIRED.code());
-    });
   }
 
   @Test
@@ -82,7 +76,6 @@ class AppointmentCommandValidatorTest {
       20L,
       30L,
       "invalid-start",
-      "invalid-end",
       "Cliente Teste",
       "cliente@teste.com",
       "Primeira visita"
@@ -93,14 +86,10 @@ class AppointmentCommandValidatorTest {
 
     // Then
     assertThat(result.hasErrors()).isTrue();
-    assertThat(result.getErrors()).hasSize(2);
+    assertThat(result.getErrors()).hasSize(1);
     assertThat(result.getErrors()).anySatisfy(error -> {
       assertThat(error.field()).isEqualTo("startDateTime");
       assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_INVALID.code());
-    });
-    assertThat(result.getErrors()).anySatisfy(error -> {
-      assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_INVALID.code());
     });
   }
 }

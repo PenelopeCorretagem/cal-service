@@ -25,6 +25,9 @@ import java.util.Optional;
 @Component
 public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
+  private static final java.util.Set<String> TERMINAL_STATUSES =
+    java.util.Set.of(Status.CANCELLED.name(), Status.CONCLUDED.name());
+
   private final AppointmentJpaRepository jpaRepository;
 
   public AppointmentRepositoryAdapter(AppointmentJpaRepository jpaRepository) {
@@ -41,6 +44,27 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
   @Override
   public Optional<Appointment> findById(Long id) {
     return jpaRepository.findById(id).map(AppointmentJpaMapper::toDomain);
+  }
+
+  @Override
+  public boolean existsActiveByEstateAgentAndStartDateTime(Long estateAgentId, LocalDateTime startDateTime) {
+    return jpaRepository.existsByEstateAgentIdAndStartDateTimeAndStatusNotIn(
+      estateAgentId,
+      startDateTime,
+      TERMINAL_STATUSES
+    );
+  }
+
+  @Override
+  public boolean existsActiveByEstateAgentAndStartDateTimeExcludingId(Long estateAgentId,
+                                                                       LocalDateTime startDateTime,
+                                                                       Long excludedId) {
+    return jpaRepository.existsByEstateAgentIdAndStartDateTimeAndStatusNotInAndIdNot(
+      estateAgentId,
+      startDateTime,
+      TERMINAL_STATUSES,
+      excludedId
+    );
   }
 
   @Override

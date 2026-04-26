@@ -14,19 +14,12 @@ public class RescheduleAppointmentCommandValidator implements CommandValidator<R
       .addErrorIf(cmd.appointmentId() == null,
         "appointmentId", AppointmentError.APPOINTMENT_ID_REQUIRED)
       .addErrorIf(cmd.startDateTime() == null || cmd.startDateTime().isBlank(),
-        "startDateTime", AppointmentError.START_DATETIME_REQUIRED)
-      .addErrorIf(cmd.endDateTime() == null || cmd.endDateTime().isBlank(),
-        "endDateTime", AppointmentError.END_DATETIME_REQUIRED);
+        "startDateTime", AppointmentError.START_DATETIME_REQUIRED);
 
     if (cmd.startDateTime() != null && !cmd.startDateTime().isBlank()) {
       result.addErrorIf(
         AppointmentDateTimeParser.parseOptional(cmd.startDateTime()).isEmpty(),
         "startDateTime", AppointmentError.START_DATETIME_INVALID);
-    }
-    if (cmd.endDateTime() != null && !cmd.endDateTime().isBlank()) {
-      result.addErrorIf(
-        AppointmentDateTimeParser.parseOptional(cmd.endDateTime()).isEmpty(),
-        "endDateTime", AppointmentError.END_DATETIME_INVALID);
     }
 
     return result;

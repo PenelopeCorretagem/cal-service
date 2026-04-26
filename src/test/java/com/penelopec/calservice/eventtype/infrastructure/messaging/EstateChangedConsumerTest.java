@@ -1,6 +1,8 @@
 package com.penelopec.calservice.eventtype.infrastructure.messaging;
 
+import com.penelopec.calservice.eventtype.application.command.CreateEventTypeCommand;
 import com.penelopec.calservice.eventtype.application.command.HandleEstateChangedCommand;
+import com.penelopec.calservice.eventtype.application.port.in.CreateEventTypeUseCase;
 import com.penelopec.calservice.eventtype.application.port.in.HandleEstateChangedUseCase;
 import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateChangedConsumer;
 import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateChangedMessage;
@@ -29,7 +31,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class EstateChangedConsumerTest {
 
   @Mock
-  private HandleEstateChangedUseCase useCase;
+  private HandleEstateChangedUseCase handleEstateChangedUseCase;
+
+  @Mock
+  private CreateEventTypeUseCase createEventTypeUseCase;
 
   @Mock
   private Channel channel;
@@ -38,7 +43,7 @@ class EstateChangedConsumerTest {
 
   @BeforeEach
   void setUp() {
-    consumer = new EstateChangedConsumer(useCase);
+    consumer = new EstateChangedConsumer(handleEstateChangedUseCase, createEventTypeUseCase);
   }
 
   @Nested
@@ -46,50 +51,77 @@ class EstateChangedConsumerTest {
   class Consume {
 
     @Test
-    @DisplayName("Deve delegar ao use case com hide=true quando status INACTIVE")
+    @DisplayName("Deve delegar ao handleEstateChangedUseCase com hide=true quando status INACTIVE")
     void shouldDelegateWithHideTrue_whenStatusInactive() throws Exception {
       // Given
-      EstateChangedMessage message = new EstateChangedMessage(42L, EstateStatus.INACTIVE, Instant.now());
+      EstateChangedMessage message = new EstateChangedMessage(
+          42L, 1L, "Title", "Desc", "slug", EstateChangedMessage.ACTION_UPDATED, EstateStatus.INACTIVE, Instant.now());
 
       // When
       consumer.consume(message, channel, 1L);
 
       // Then
       ArgumentCaptor<HandleEstateChangedCommand> captor = ArgumentCaptor.forClass(HandleEstateChangedCommand.class);
-      verify(useCase).execute(captor.capture());
+      verify(handleEstateChangedUseCase).execute(captor.capture());
+      verifyNoInteractions(createEventTypeUseCase);
       verify(channel).basicAck(1L, false);
       assertThat(captor.getValue().estateId()).isEqualTo(42L);
       assertThat(captor.getValue().hide()).isTrue();
     }
 
     @Test
-    @DisplayName("Deve delegar ao use case com hide=false quando status ACTIVE")
+    @DisplayName("Deve delegar ao handleEstateChangedUseCase com hide=false quando status ACTIVE")
     void shouldDelegateWithHideFalse_whenStatusActive() throws Exception {
       // Given
-      EstateChangedMessage message = new EstateChangedMessage(10L, EstateStatus.ACTIVE, Instant.now());
+      EstateChangedMessage message = new EstateChangedMessage(
+          10L, 2L, "Title", "Desc", "slug", EstateChangedMessage.ACTION_UPDATED, EstateStatus.ACTIVE, Instant.now());
 
       // When
       consumer.consume(message, channel, 1L);
 
       // Then
       ArgumentCaptor<HandleEstateChangedCommand> captor = ArgumentCaptor.forClass(HandleEstateChangedCommand.class);
-      verify(useCase).execute(captor.capture());
+      verify(handleEstateChangedUseCase).execute(captor.capture());
+      verifyNoInteractions(createEventTypeUseCase);
       verify(channel).basicAck(1L, false);
       assertThat(captor.getValue().estateId()).isEqualTo(10L);
       assertThat(captor.getValue().hide()).isFalse();
     }
 
     @Test
-    @DisplayName("Deve descartar mensagem sem chamar use case quando newStatus for nulo")
-    void shouldDiscard_whenNewStatusIsNull() throws Exception {
+    @DisplayName("Deve delegar ao createEventTypeUseCase quando action for CREATED")
+    void shouldDelegateToCreate_whenActionCreated() throws Exception {
       // Given
-      EstateChangedMessage message = new EstateChangedMessage(5L, null, Instant.now());
+      EstateChangedMessage message = new EstateChangedMessage(
+          10L, 2L, "Title", "Desc", "slug", EstateChangedMessage.ACTION_CREATED, EstateStatus.ACTIVE, Instant.now());
 
       // When
       consumer.consume(message, channel, 1L);
 
       // Then
-      verifyNoInteractions(useCase);
+      ArgumentCaptor<CreateEventTypeCommand> captor = ArgumentCaptor.forClass(CreateEventTypeCommand.class);
+      verify(createEventTypeUseCase).execute(captor.capture());
+      verifyNoInteractions(handleEstateChangedUseCase);
+      verify(channel).basicAck(1L, false);
+      assertThat(captor.getValue().estateId()).isEqualTo(10L);
+      assertThat(captor.getValue().title()).isEqualTo("Title");
+      assertThat(captor.getValue().description()).isEqualTo("Desc");
+      assertThat(captor.getValue().hidden()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Deve descartar mensagem sem chamar use case quando newStatus for nulo")
+    void shouldDiscard_whenNewStatusIsNull() throws Exception {
+      // Given
+      EstateChangedMessage message = new EstateChangedMessage(
+          5L, 3L, "Title", "Desc", "slug", EstateChangedMessage.ACTION_UPDATED, null, Instant.now());
+
+      // When
+      consumer.consume(message, channel, 1L);
+
+      // Then
+      verifyNoInteractions(handleEstateChangedUseCase);
+      verifyNoInteractions(createEventTypeUseCase);
       verify(channel).basicAck(1L, false);
     }
 
@@ -97,8 +129,9 @@ class EstateChangedConsumerTest {
     @DisplayName("Deve propagar exceção e não confirmar mensagem quando useCase lança exceção")
     void shouldPropagateException_whenUseCaseThrowsException() throws Exception {
       // Given
-      EstateChangedMessage message = new EstateChangedMessage(99L, EstateStatus.ACTIVE, Instant.now());
-      doThrow(new RuntimeException("erro simulado")).when(useCase).execute(any());
+      EstateChangedMessage message = new EstateChangedMessage(
+          99L, 4L, "Title", "Desc", "slug", EstateChangedMessage.ACTION_UPDATED, EstateStatus.ACTIVE, Instant.now());
+      doThrow(new RuntimeException("erro simulado")).when(handleEstateChangedUseCase).execute(any());
 
       // When
       assertThatThrownBy(() -> consumer.consume(message, channel, 2L))
@@ -111,3 +144,4 @@ class EstateChangedConsumerTest {
     }
   }
 }
+

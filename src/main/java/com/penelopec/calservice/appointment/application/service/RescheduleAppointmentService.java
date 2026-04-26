@@ -14,9 +14,12 @@ import com.penelopec.calservice.appointment.domain.repository.AppointmentReposit
 import com.penelopec.calservice.shared.validation.CommandValidator;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 
 public class RescheduleAppointmentService implements ChangeAppointmentUseCase {
+
+  private static final int DEFAULT_DURATION_MINUTES = 60;
+  private static final ZoneId BRAZIL_TIME_ZONE = ZoneId.of("America/Sao_Paulo");
 
   private final CalComBookingGateway bookingGateway;
   private final AppointmentRepository repository;
@@ -42,16 +45,29 @@ public class RescheduleAppointmentService implements ChangeAppointmentUseCase {
     }
 
     LocalDateTime newStart = AppointmentDateTimeParser.parseRequired(command.startDateTime(), "startDateTime");
-    LocalDateTime newEnd = AppointmentDateTimeParser.parseRequired(command.endDateTime(), "endDateTime");
+    LocalDateTime newEnd = newStart.plusMinutes(DEFAULT_DURATION_MINUTES);
+
+    if (appointment.getEstateAgentId() != null
+      && repository.existsActiveByEstateAgentAndStartDateTimeExcludingId(
+        appointment.getEstateAgentId(),
+        newStart,
+        appointment.getId())) {
+      throw new DomainException(AppointmentError.SCHEDULE_CONFLICT);
+    }
 
     appointment.reschedule(newStart, newEnd, command.reason());
 
-    bookingGateway.rescheduleBooking(
+    var bookingResult = bookingGateway.rescheduleBooking(
       appointment.getBookingUid(),
-      newStart.atOffset(ZoneOffset.UTC),
-      newEnd.atOffset(ZoneOffset.UTC),
+      newStart.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
+      newEnd.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
       command.reason()
     );
+
+    if (bookingResult.uid() != null
+      && !bookingResult.uid().isBlank()) {
+      appointment.assignBookingUid(bookingResult.uid());
+    }
 
     Appointment saved = repository.save(appointment);
 

@@ -4,6 +4,7 @@ import com.penelopec.calservice.appointment.application.command.RescheduleAppoin
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.error.AppointmentError;
+import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.BookingResult;
 import com.penelopec.calservice.shared.error.core.ApplicationException;
 import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
@@ -21,7 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,31 +52,67 @@ class RescheduleAppointmentServiceTest {
     void shouldRescheduleRemotelyAndPersist_whenAppointmentExists() {
       Appointment appointment = createAppointment(1L, "booking-123", Status.PENDING);
       RescheduleAppointmentCommand command = new RescheduleAppointmentCommand(
-        1L, "2026-03-23T16:00:00", "2026-03-23T17:30:00", "Conflito de agenda"
+        1L, "2026-03-23T16:00:00", "Conflito de agenda"
       );
       when(repository.findById(1L)).thenReturn(Optional.of(appointment));
+      when(repository.existsActiveByEstateAgentAndStartDateTimeExcludingId(
+        33L,
+        LocalDateTime.parse("2026-03-23T16:00:00"),
+        1L)).thenReturn(false);
+      when(bookingGateway.rescheduleBooking(any(), any(), any(), any())).thenReturn(
+        new BookingResult(
+          "booking-456",
+          999L,
+          "accepted",
+          OffsetDateTime.parse("2026-03-23T16:00:00Z"),
+          OffsetDateTime.parse("2026-03-23T17:00:00Z")
+        )
+      );
       when(repository.save(appointment)).thenReturn(appointment);
 
       AppointmentOutput output = service.execute(command);
 
       verify(bookingGateway).rescheduleBooking(
         "booking-123",
-        LocalDateTime.parse("2026-03-23T16:00:00").atOffset(ZoneOffset.UTC),
-        LocalDateTime.parse("2026-03-23T17:30:00").atOffset(ZoneOffset.UTC),
+        OffsetDateTime.parse("2026-03-23T16:00:00-03:00"),
+        OffsetDateTime.parse("2026-03-23T17:00:00-03:00"),
         "Conflito de agenda"
       );
       verify(repository).save(appointment);
+      assertThat(output.bookingUid()).isEqualTo("booking-456");
       assertThat(output.startDateTime()).isEqualTo(LocalDateTime.parse("2026-03-23T16:00:00"));
-      assertThat(output.endDateTime()).isEqualTo(LocalDateTime.parse("2026-03-23T17:30:00"));
-      assertThat(output.durationMinutes()).isEqualTo(90);
+      assertThat(output.endDateTime()).isEqualTo(LocalDateTime.parse("2026-03-23T17:00:00"));
+      assertThat(output.durationMinutes()).isEqualTo(60);
       assertThat(output.reason()).isEqualTo("Conflito de agenda");
+    }
+
+    @Test
+    @DisplayName("Deve lancar excecao quando horario ja estiver ocupado")
+    void shouldThrowException_whenScheduleSlotIsAlreadyTaken() {
+      Appointment appointment = createAppointment(1L, "booking-123", Status.PENDING);
+      RescheduleAppointmentCommand command = new RescheduleAppointmentCommand(
+        1L, "2026-03-23T16:00:00", "Conflito de agenda"
+      );
+
+      when(repository.findById(1L)).thenReturn(Optional.of(appointment));
+      when(repository.existsActiveByEstateAgentAndStartDateTimeExcludingId(
+        33L,
+        LocalDateTime.parse("2026-03-23T16:00:00"),
+        1L)).thenReturn(true);
+
+      assertThatThrownBy(() -> service.execute(command))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).error()).isEqualTo(AppointmentError.SCHEDULE_CONFLICT));
+
+      verify(bookingGateway, never()).rescheduleBooking(any(), any(), any(), any());
+      verify(repository, never()).save(any(Appointment.class));
     }
 
     @Test
     @DisplayName("Deve lancar excecao quando agendamento nao existe")
     void shouldThrowException_whenAppointmentDoesNotExist() {
       RescheduleAppointmentCommand command = new RescheduleAppointmentCommand(
-        99L, "2026-03-23T16:00:00", "2026-03-23T17:30:00", "Conflito de agenda"
+        99L, "2026-03-23T16:00:00", "Conflito de agenda"
       );
       when(repository.findById(99L)).thenReturn(Optional.empty());
 
@@ -89,7 +126,7 @@ class RescheduleAppointmentServiceTest {
     void shouldThrowException_whenBookingUidIsMissing() {
       Appointment appointment = createAppointment(1L, null, Status.PENDING);
       RescheduleAppointmentCommand command = new RescheduleAppointmentCommand(
-        1L, "2026-03-23T16:00:00", "2026-03-23T17:30:00", "Conflito de agenda"
+        1L, "2026-03-23T16:00:00", "Conflito de agenda"
       );
       when(repository.findById(1L)).thenReturn(Optional.of(appointment));
 
@@ -105,7 +142,7 @@ class RescheduleAppointmentServiceTest {
     void shouldThrowException_whenStartDateTimeIsInvalid() {
       Appointment appointment = createAppointment(1L, "booking-123", Status.PENDING);
       RescheduleAppointmentCommand command = new RescheduleAppointmentCommand(
-        1L, "data-invalida", "2026-03-23T17:30:00", "Conflito de agenda"
+        1L, "data-invalida", "Conflito de agenda"
       );
       when(repository.findById(1L)).thenReturn(Optional.of(appointment));
 

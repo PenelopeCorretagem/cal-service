@@ -16,7 +16,6 @@ class RescheduleAppointmentCommandValidatorTest {
     var command = new RescheduleAppointmentCommand(
       100L,
       "2026-04-19T10:00:00",
-      "2026-04-19T11:00:00",
       "Conflito de agenda"
     );
 
@@ -34,37 +33,6 @@ class RescheduleAppointmentCommandValidatorTest {
     var command = new RescheduleAppointmentCommand(
       null,
       " ",
-      null,
-      "Conflito de agenda"
-    );
-
-    // When
-    var result = validator.validate(command);
-
-    // Then
-    assertThat(result.hasErrors()).isTrue();
-    assertThat(result.getErrors()).hasSize(3);
-    assertThat(result.getErrors()).anySatisfy(error -> {
-      assertThat(error.field()).isEqualTo("appointmentId");
-      assertThat(error.code()).isEqualTo(AppointmentError.APPOINTMENT_ID_REQUIRED.code());
-    });
-    assertThat(result.getErrors()).anySatisfy(error -> {
-      assertThat(error.field()).isEqualTo("startDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_REQUIRED.code());
-    });
-    assertThat(result.getErrors()).anySatisfy(error -> {
-      assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_REQUIRED.code());
-    });
-  }
-
-  @Test
-  void shouldReturnDatetimeInvalidErrors_whenDatetimeFormatIsInvalid() {
-    // Given
-    var command = new RescheduleAppointmentCommand(
-      100L,
-      "invalid-start",
-      "invalid-end",
       "Conflito de agenda"
     );
 
@@ -75,12 +43,33 @@ class RescheduleAppointmentCommandValidatorTest {
     assertThat(result.hasErrors()).isTrue();
     assertThat(result.getErrors()).hasSize(2);
     assertThat(result.getErrors()).anySatisfy(error -> {
-      assertThat(error.field()).isEqualTo("startDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_INVALID.code());
+      assertThat(error.field()).isEqualTo("appointmentId");
+      assertThat(error.code()).isEqualTo(AppointmentError.APPOINTMENT_ID_REQUIRED.code());
     });
     assertThat(result.getErrors()).anySatisfy(error -> {
-      assertThat(error.field()).isEqualTo("endDateTime");
-      assertThat(error.code()).isEqualTo(AppointmentError.END_DATETIME_INVALID.code());
+      assertThat(error.field()).isEqualTo("startDateTime");
+      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_REQUIRED.code());
+    });
+  }
+
+  @Test
+  void shouldReturnDatetimeInvalidErrors_whenDatetimeFormatIsInvalid() {
+    // Given
+    var command = new RescheduleAppointmentCommand(
+      100L,
+      "invalid-start",
+      "Conflito de agenda"
+    );
+
+    // When
+    var result = validator.validate(command);
+
+    // Then
+    assertThat(result.hasErrors()).isTrue();
+    assertThat(result.getErrors()).hasSize(1);
+    assertThat(result.getErrors()).anySatisfy(error -> {
+      assertThat(error.field()).isEqualTo("startDateTime");
+      assertThat(error.code()).isEqualTo(AppointmentError.START_DATETIME_INVALID.code());
     });
   }
 }
