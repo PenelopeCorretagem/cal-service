@@ -55,7 +55,7 @@ public class SecurityConfig {
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(authorize -> authorize
         .requestMatchers(AUTH_WHITELIST).permitAll()
-        .requestMatchers(HttpMethod.DELETE, "/appointments/**").hasRole("ADMIN")
+        .requestMatchers(HttpMethod.DELETE, "/appointments/**").hasRole("ADMINISTRADOR")
         .anyRequest().authenticated()
       )
       .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

@@ -605,7 +605,7 @@ public interface AppointmentControllerSwagger {
   @Operation(
     summary = "Excluir agendamento",
     description = "Exclui um agendamento do banco de dados local. "
-      + "A operação é restrita a usuários com perfil ADMIN. "
+      + "A operação é restrita a usuários com perfil ADMINISTRADOR. "
       + "Se houver um **bookingUid** vinculado, também cancela o booking no Cal.com."
   )
   @ApiResponses({
