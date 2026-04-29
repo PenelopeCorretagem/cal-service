@@ -20,12 +20,15 @@ spring:
     show-sql: false
     open-in-view: false
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_DEFAULT_USER}
+    password: ${RABBITMQ_DEFAULT_PASS}
+
 app:
-  security:
-    token:
-      secret: ${JWT_API_KEY}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
 
 calcom:
   api:
@@ -40,10 +43,19 @@ monolith:
     token: ${MONOLITH_API_TOKEN:}
     estates-path: ${MONOLITH_ESTATES_PATH:/api/empreendimentos}
 
+auth-service:
+  base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:9000/api}
+
 scheduler:
   sync:
     cron: ${SYNC_CRON:0 */5 * * * *}
     enabled: ${SYNC_ENABLED:true}
+
+rabbitmq:
+  queues:
+    estate-changed: ${RABBITMQ_QUEUE_ESTATE_CHANGED:cal-service.estate-changed}
+  exchanges:
+    estate: ${RABBITMQ_EXCHANGE_ESTATE:estate.exchange}
 
 springdoc:
   swagger-ui:
