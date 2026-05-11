@@ -1,6 +1,8 @@
 package com.penelopec.calservice.appointment.infrastructure.controller;
 
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.application.output.AvailableSlotsOutput;
+import com.penelopec.calservice.appointment.application.output.ScheduleOutput;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CreateAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.RescheduleAppointmentRequest;
@@ -21,6 +23,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @Tag(name = "Agendamentos", description = "Endpoints para criação, consulta, reagendamento, cancelamento e exclusão de agendamentos integrados ao Cal.com")
 @SecurityRequirement(name = "bearerAuth")
@@ -634,5 +638,95 @@ public interface AppointmentControllerSwagger {
   ResponseEntity<Void> delete(
     @Parameter(description = "ID do agendamento a ser excluído", example = "1", required = true)
     @PathVariable Long id
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /appointments/schedules
+  // ──────────────────────────────────────────────
+
+  @Operation(
+    summary = "Buscar horários de trabalho (schedules)",
+    description = "Retorna todos os schedules (horários de trabalho) configurados no Cal.com. "
+      + "Cada schedule contém as regras de disponibilidade por dia da semana e possíveis overrides por data específica."
+  )
+  @ApiResponses({
+    @ApiResponse(
+      responseCode = "200",
+      description = "Schedules retornados com sucesso",
+      content = @Content(
+        mediaType = "application/json",
+        examples = @ExampleObject(
+          name = "Schedules",
+          value = """
+            [
+              {
+                "id": 254,
+                "name": "Horário comercial",
+                "timeZone": "America/Sao_Paulo",
+                "availability": [
+                  { "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "startTime": "09:00", "endTime": "18:00" }
+                ],
+                "isDefault": true,
+                "overrides": []
+              }
+            ]"""
+        )
+      )
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou inválido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+  })
+  ResponseEntity<List<ScheduleOutput>> getSchedules();
+
+  // ──────────────────────────────────────────────
+  // GET /appointments/slots
+  // ──────────────────────────────────────────────
+
+  @Operation(
+    summary = "Buscar horários disponíveis (slots)",
+    description = "Retorna os horários disponíveis para agendamento em um tipo de evento, dentro de um período. "
+      + "Os horários retornados já consideram o schedule configurado no Cal.com e agendamentos existentes."
+  )
+  @ApiResponses({
+    @ApiResponse(
+      responseCode = "200",
+      description = "Slots disponíveis retornados com sucesso",
+      content = @Content(
+        mediaType = "application/json",
+        examples = @ExampleObject(
+          name = "Slots disponíveis",
+          value = """
+            {
+              "slots": {
+                "2026-04-28": ["2026-04-28T09:00:00-03:00", "2026-04-28T10:00:00-03:00", "2026-04-28T14:00:00-03:00"],
+                "2026-04-29": ["2026-04-29T09:00:00-03:00", "2026-04-29T11:00:00-03:00"]
+              }
+            }"""
+        )
+      )
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou inválido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+  })
+  ResponseEntity<AvailableSlotsOutput> getAvailableSlots(
+    @Parameter(description = "ID do tipo de evento", example = "100", required = true) @RequestParam Long eventTypeId,
+    @Parameter(description = "Data início (ISO-8601, ex: 2026-04-28)", example = "2026-04-28", required = true) @RequestParam String start,
+    @Parameter(description = "Data fim (ISO-8601, ex: 2026-04-30)", example = "2026-04-30", required = true) @RequestParam String end
   );
 }

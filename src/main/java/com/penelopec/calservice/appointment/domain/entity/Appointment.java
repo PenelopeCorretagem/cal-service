@@ -83,6 +83,13 @@ public class Appointment {
     this.updatedAt = LocalDateTime.now();
   }
 
+  public void updateEndDateTime(LocalDateTime newEnd) {
+    if (newEnd != null && newEnd.isAfter(this.startDateTime)) {
+      this.endDateTime = newEnd;
+      this.updatedAt = LocalDateTime.now();
+    }
+  }
+
   public void confirm() {
     if (this.status.isTerminal()) {
       throw new DomainException(AppointmentError.INVALID_STATUS_TRANSITION, this.status);
