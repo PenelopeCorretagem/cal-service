@@ -18,7 +18,6 @@ import java.time.ZoneId;
 
 public class RescheduleAppointmentService implements ChangeAppointmentUseCase {
 
-  private static final int DEFAULT_DURATION_MINUTES = 60;
   private static final ZoneId BRAZIL_TIME_ZONE = ZoneId.of("America/Sao_Paulo");
 
   private final CalComBookingGateway bookingGateway;
@@ -45,7 +44,6 @@ public class RescheduleAppointmentService implements ChangeAppointmentUseCase {
     }
 
     LocalDateTime newStart = AppointmentDateTimeParser.parseRequired(command.startDateTime(), "startDateTime");
-    LocalDateTime newEnd = newStart.plusMinutes(DEFAULT_DURATION_MINUTES);
 
     if (appointment.getEstateAgentId() != null
       && repository.existsActiveByEstateAgentAndStartDateTimeExcludingId(
@@ -55,14 +53,15 @@ public class RescheduleAppointmentService implements ChangeAppointmentUseCase {
       throw new DomainException(AppointmentError.SCHEDULE_CONFLICT);
     }
 
-    appointment.reschedule(newStart, newEnd, command.reason());
-
     var bookingResult = bookingGateway.rescheduleBooking(
       appointment.getBookingUid(),
       newStart.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
-      newEnd.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
+      null,
       command.reason()
     );
+
+    LocalDateTime actualEnd = bookingResult.endTime().atZoneSameInstant(BRAZIL_TIME_ZONE).toLocalDateTime();
+    appointment.reschedule(newStart, actualEnd, command.reason());
 
     if (bookingResult.uid() != null
       && !bookingResult.uid().isBlank()) {

@@ -19,7 +19,6 @@ import java.time.ZoneId;
 
 public class CreateAppointmentService implements CreateAppointmentUseCase {
 
-  private static final int DEFAULT_DURATION_MINUTES = 60;
   private static final ZoneId BRAZIL_TIME_ZONE = ZoneId.of("America/Sao_Paulo");
 
   private final CalComBookingGateway bookingGateway;
@@ -39,32 +38,33 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
     validator.validateAndThrow(command);
 
     LocalDateTime start = AppointmentDateTimeParser.parseRequired(command.startDateTime(), "startDateTime");
-    LocalDateTime end = start.plusMinutes(DEFAULT_DURATION_MINUTES);
 
     if (command.estateAgentId() != null
       && repository.existsActiveByEstateAgentAndStartDateTime(command.estateAgentId(), start)) {
       throw new DomainException(AppointmentError.SCHEDULE_CONFLICT);
     }
 
+    BookingResult result = bookingGateway.createBooking(new CreateBookingRequest(
+      command.eventTypeId(),
+      start.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
+      null,
+      command.attendeeName(),
+      command.attendeeEmail(),
+      command.notes()
+    ));
+
+    LocalDateTime actualEnd = result.endTime().atZoneSameInstant(BRAZIL_TIME_ZONE).toLocalDateTime();
+
     Appointment appointment = Appointment.createNew(
       command.eventTypeId(),
       command.clientId(),
       command.estateAgentId(),
       start,
-      end,
+      actualEnd,
       command.attendeeName(),
       command.attendeeEmail(),
       command.notes()
     );
-
-    BookingResult result = bookingGateway.createBooking(new CreateBookingRequest(
-      command.eventTypeId(),
-      start.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
-      end.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
-      command.attendeeName(),
-      command.attendeeEmail(),
-      command.notes()
-    ));
 
     appointment.assignBookingUid(result.uid());
 

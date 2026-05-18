@@ -27,7 +27,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,8 +64,8 @@ class RescheduleAppointmentServiceTest {
           "booking-456",
           999L,
           "accepted",
-          OffsetDateTime.parse("2026-03-23T16:00:00Z"),
-          OffsetDateTime.parse("2026-03-23T17:00:00Z")
+          OffsetDateTime.parse("2026-03-23T19:00:00Z"),
+          OffsetDateTime.parse("2026-03-23T20:00:00Z")
         )
       );
       when(repository.save(appointment)).thenReturn(appointment);
@@ -73,10 +73,10 @@ class RescheduleAppointmentServiceTest {
       AppointmentOutput output = service.execute(command);
 
       verify(bookingGateway).rescheduleBooking(
-        "booking-123",
-        OffsetDateTime.parse("2026-03-23T16:00:00-03:00"),
-        OffsetDateTime.parse("2026-03-23T17:00:00-03:00"),
-        "Conflito de agenda"
+        eq("booking-123"),
+        eq(OffsetDateTime.parse("2026-03-23T16:00:00-03:00")),
+        isNull(),
+        eq("Conflito de agenda")
       );
       verify(repository).save(appointment);
       assertThat(output.bookingUid()).isEqualTo("booking-456");

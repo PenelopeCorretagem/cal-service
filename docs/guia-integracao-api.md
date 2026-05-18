@@ -524,13 +524,15 @@ Body (`AppointmentOutput`):
 | HTTP | Codigo esperado | Quando ocorre |
 |---|---|---|
 | 409 | APT-SCHEDULE-CONFLICT | horario ja ocupado para o corretor |
+| 409 | APT-BOOKING-SLOT-UNAVAILABLE | horario indisponivel no Cal.com |
+| 422 | APT-BOOKING-IN-PAST | tentativa de agendar no passado |
 | 422 | CORE-VALIDATION / APPT-VAL-* | payload invalido |
 | 401 | CORE-UNAUTHORIZED | sem token/invalid token |
 | 502 | APT-BOOKING-CREATE-FAILED | falha ao criar booking externo |
 
 **Observacoes importantes**
 
-- A duracao do agendamento e fixa em 60 minutos (calculada automaticamente a partir de `startDateTime`).
+- A duracao do agendamento e definida pelo Cal.com (event type) e retornada no `endDateTime`/`durationMinutes` de resposta.
 - Mesmo se DTO permitir `attendeeName`/`attendeeEmail` nulos, regra de negocio exige os campos.
 
 ---
@@ -662,6 +664,8 @@ Body (`AppointmentOutput`):
 |---|---|---|
 | 404 | APT-NOT-FOUND | agendamento inexistente |
 | 409 | APT-INVALID-STATUS-TRANSITION / APT-SCHEDULE-CONFLICT | status terminal ou horario ocupado |
+| 409 | APT-BOOKING-SLOT-UNAVAILABLE | horario indisponivel no Cal.com |
+| 422 | APT-BOOKING-IN-PAST | tentativa de reagendar para o passado |
 | 422 | APPT-VAL-START-DT-INVALID | data/hora invalida |
 | 502 | APT-BOOKING-RESCHEDULE-FAILED | falha na integracao externa |
 
@@ -786,6 +790,99 @@ Sem body.
 **Observacoes importantes**
 
 - Se houver `bookingUid`, a API tenta cancelar no provedor antes de remover localmente.
+
+---
+
+### APT-09 - GET `/appointments/schedules`
+
+**Objetivo:** buscar os horarios de trabalho (schedules) configurados no Cal.com.
+
+**Autenticacao:** obrigatoria.
+
+**Request body:** nao possui.
+
+**Response 200 (sucesso)**
+
+```json
+[
+  {
+    "id": 254,
+    "name": "Horario comercial",
+    "timeZone": "America/Sao_Paulo",
+    "availability": [
+      {
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "startTime": "09:00",
+        "endTime": "18:00"
+      }
+    ],
+    "isDefault": true,
+    "overrides": []
+  }
+]
+```
+
+**Erros comuns**
+
+| HTTP | Codigo esperado | Quando ocorre |
+|---|---|---|
+| 401 | CORE-UNAUTHORIZED | sem token/invalid token |
+| 502 | APT-SCHEDULE-FETCH-FAILED | falha ao buscar schedules no Cal.com |
+
+**Observacoes importantes**
+
+- O retorno pode conter mais de um schedule; use `isDefault = true` quando quiser o horario padrao do usuario.
+- `overrides` representa excecoes por data (ex.: horario especial em um dia especifico).
+
+---
+
+### APT-10 - GET `/appointments/slots`
+
+**Objetivo:** buscar slots disponiveis para um event type em um periodo.
+
+**Autenticacao:** obrigatoria.
+
+**Query params**
+
+| Param | Tipo | Obrigatorio | Regra |
+|---|---|---|---|
+| eventTypeId | long | Sim | ID do tipo de evento no Cal.com |
+| start | string | Sim | data inicial ISO-8601 (ex.: `2026-04-28`) |
+| end | string | Sim | data final ISO-8601 (ex.: `2026-04-30`) |
+
+**Exemplo request**
+
+`GET /appointments/slots?eventTypeId=100&start=2026-04-28&end=2026-04-30`
+
+**Response 200 (sucesso)**
+
+```json
+{
+  "slots": {
+    "2026-04-28": [
+      "2026-04-28T09:00:00-03:00",
+      "2026-04-28T10:00:00-03:00",
+      "2026-04-28T14:00:00-03:00"
+    ],
+    "2026-04-29": [
+      "2026-04-29T09:00:00-03:00",
+      "2026-04-29T11:00:00-03:00"
+    ]
+  }
+}
+```
+
+**Erros comuns**
+
+| HTTP | Codigo esperado | Quando ocorre |
+|---|---|---|
+| 401 | CORE-UNAUTHORIZED | sem token/invalid token |
+| 502 | APT-SLOTS-FETCH-FAILED | falha ao buscar slots no Cal.com |
+
+**Observacoes importantes**
+
+- O calculo de disponibilidade considera schedule + ocupacao atual no Cal.com.
+- O timezone utilizado na consulta e `America/Sao_Paulo`.
 
 ---
 
