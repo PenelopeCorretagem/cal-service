@@ -1,11 +1,10 @@
 package com.penelopec.calservice.eventtype.infrastructure.web.monolith.adapter;
 
 import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
-import com.penelopec.calservice.eventtype.domain.valueobject.EstateData;
+import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.AdvertisementResponse;
+import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.EstateResponse;
 import com.penelopec.calservice.shared.error.core.GatewayException;
 import com.penelopec.calservice.eventtype.infrastructure.config.properties.MonolithProperties;
-import com.penelopec.calservice.eventtype.infrastructure.web.monolith.adapter.MonolithEstateAdapter;
-import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.MonolithEstateResponse;
 import com.penelopec.calservice.shared.http.exception.RemoteServiceException;
 import com.penelopec.calservice.shared.http.executor.RestExecutor;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,14 +37,14 @@ class MonolithEstateAdapterTest {
   @Mock
   private RestExecutor restExecutor;
 
-  private MonolithEstateAdapter adapter;
+  private MonolithAdvertisementAdapter adapter;
 
   @BeforeEach
   void setUp() {
     MonolithProperties properties = new MonolithProperties(
-      new MonolithProperties.Api("http://monolith", "token", "/api/estates")
+      new MonolithProperties.Api("http://monolith", "token", "/v1/advertisements")
     );
-    adapter = new MonolithEstateAdapter(restClient, properties, restExecutor);
+    adapter = new MonolithAdvertisementAdapter(restClient, properties, restExecutor);
 
     when(restExecutor.executeOrNull(anyString(), any()))
       .thenAnswer(inv -> {
@@ -60,32 +59,32 @@ class MonolithEstateAdapterTest {
   }
 
   @Nested
-  @DisplayName("fetchAllEstates")
-  class FetchAllEstates {
+  @DisplayName("fetchAllAdvertisements")
+  class FetchAllAdvertisements {
 
     @Test
-    @DisplayName("Deve mapear resposta do monolito para EstateData")
-    void shouldMapMonolithResponseToEstateData() {
+    @DisplayName("Deve retornar lista de AdvertisementResponse do monolito")
+    void shouldReturnAdvertisementResponses() {
       // Given
-      List<MonolithEstateResponse> response = List.of(
-        new MonolithEstateResponse(1L, "Emp 1", "Desc 1", true),
-        new MonolithEstateResponse(2L, "Emp 2", "Desc 2", null)
+      List<AdvertisementResponse> response = List.of(
+        new AdvertisementResponse(true, new EstateResponse(1L, "Emp 1", "Desc 1")),
+        new AdvertisementResponse(false, new EstateResponse(2L, "Emp 2", "Desc 2"))
       );
 
       when(restClient.get()
-        .uri("/api/estates")
+        .uri("/v1/advertisements")
         .retrieve()
-        .body(ArgumentMatchers.<ParameterizedTypeReference<List<MonolithEstateResponse>>>any()))
+        .body(ArgumentMatchers.<ParameterizedTypeReference<List<AdvertisementResponse>>>any()))
         .thenReturn(response);
 
       // When
-      List<EstateData> result = adapter.fetchAllEstates();
+      List<AdvertisementResponse> result = adapter.fetchAllAdvertisements();
 
       // Then
       assertThat(result).hasSize(2);
-      assertThat(result.get(0).id()).isEqualTo(1L);
+      assertThat(result.get(0).estate().id()).isEqualTo(1L);
       assertThat(result.get(0).active()).isTrue();
-      assertThat(result.get(1).id()).isEqualTo(2L);
+      assertThat(result.get(1).estate().id()).isEqualTo(2L);
       assertThat(result.get(1).active()).isFalse();
     }
 
@@ -94,13 +93,13 @@ class MonolithEstateAdapterTest {
     void shouldReturnEmptyListWhenResponseIsNull() {
       // Given
       when(restClient.get()
-        .uri("/api/estates")
+        .uri("/v1/advertisements")
         .retrieve()
-        .body(ArgumentMatchers.<ParameterizedTypeReference<List<MonolithEstateResponse>>>any()))
+        .body(ArgumentMatchers.<ParameterizedTypeReference<List<AdvertisementResponse>>>any()))
         .thenReturn(null);
 
       // When
-      List<EstateData> result = adapter.fetchAllEstates();
+      List<AdvertisementResponse> result = adapter.fetchAllAdvertisements();
 
       // Then
       assertThat(result).isEmpty();
@@ -108,16 +107,16 @@ class MonolithEstateAdapterTest {
 
     @Test
     @DisplayName("Deve lançar GatewayException com SYNC_FAILED em falha de integração")
-    void shouldThrowEventTypeCreationExceptionOnIntegrationFailure() {
+    void shouldThrowGatewayExceptionOnIntegrationFailure() {
       // Given
       when(restClient.get()
-        .uri("/api/estates")
+        .uri("/v1/advertisements")
         .retrieve()
-        .body(ArgumentMatchers.<ParameterizedTypeReference<List<MonolithEstateResponse>>>any()))
+        .body(ArgumentMatchers.<ParameterizedTypeReference<List<AdvertisementResponse>>>any()))
         .thenThrow(new RuntimeException("timeout"));
 
       // When / Then
-      assertThatThrownBy(() -> adapter.fetchAllEstates())
+      assertThatThrownBy(() -> adapter.fetchAllAdvertisements())
         .isInstanceOf(GatewayException.class)
         .satisfies(ex -> assertThat(((GatewayException) ex).error()).isEqualTo(EventTypeError.SYNC_FAILED));
     }

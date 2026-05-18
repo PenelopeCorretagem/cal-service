@@ -6,7 +6,7 @@ import com.penelopec.calservice.eventtype.application.validator.CreateEventTypeC
 import com.penelopec.calservice.eventtype.application.validator.HandleEstateChangedCommandValidator;
 import com.penelopec.calservice.eventtype.application.validator.UpdateEventTypeCommandValidator;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
-import com.penelopec.calservice.eventtype.domain.gateway.EstateGateway;
+import com.penelopec.calservice.eventtype.domain.gateway.AdvertisementGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import com.penelopec.calservice.eventtype.infrastructure.config.properties.CalcomProperties;
 import com.penelopec.calservice.eventtype.infrastructure.config.properties.CorsProperties;
@@ -56,10 +56,11 @@ public class EventTypeConfig {
   }
 
   @Bean
-  public SyncEventTypesUseCase syncEventTypesUseCase(EstateGateway estateGateway,
-                                                     CalComEventTypeGateway calComGateway,
-                                                     EventTypeRepository repository) {
-    return new SyncEventTypesService(estateGateway, calComGateway, repository);
+  public SyncEventTypesUseCase syncEventTypesUseCase(AdvertisementGateway advertisementGateway,
+                                                     EventTypeRepository eventTypeRepository,
+                                                     CreateEventTypeUseCase createEventTypeUseCase,
+                                                     ChangeEventTypeUseCase changeEventTypeUseCase) {
+    return new SyncEventTypesService(advertisementGateway, eventTypeRepository, createEventTypeUseCase, changeEventTypeUseCase);
   }
 
   @Bean

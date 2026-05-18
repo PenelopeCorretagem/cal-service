@@ -58,8 +58,8 @@ class CreateAppointmentServiceTest {
       );
       BookingResult bookingResult = new BookingResult(
         "booking-uid-123", 999L, "accepted",
-        OffsetDateTime.parse("2026-03-22T14:00:00Z"),
-        OffsetDateTime.parse("2026-03-22T15:00:00Z")
+        OffsetDateTime.parse("2026-03-22T17:00:00Z"),
+        OffsetDateTime.parse("2026-03-22T18:00:00Z")
       );
       when(repository.existsActiveByEstateAgentAndStartDateTime(
         303L,

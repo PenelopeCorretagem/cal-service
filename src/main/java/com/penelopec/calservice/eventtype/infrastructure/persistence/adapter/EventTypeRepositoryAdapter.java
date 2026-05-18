@@ -50,4 +50,9 @@ public class EventTypeRepositoryAdapter implements EventTypeRepository {
   public void deleteById(Long id) {
     jpaRepository.deleteById(id);
   }
+
+  @Override
+  public boolean existsByEstateId(Long estateId) {
+    return jpaRepository.existsByEstateId(estateId);
+  }
 }
