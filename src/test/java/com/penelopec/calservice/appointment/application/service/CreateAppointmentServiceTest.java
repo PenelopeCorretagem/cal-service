@@ -123,6 +123,43 @@ class CreateAppointmentServiceTest {
     }
 
     @Test
+    @DisplayName("Deve usar duracao padrao quando Cal.com nao retornar endTime")
+    void shouldUseDefaultDuration_whenCalComDoesNotReturnEndTime() {
+      AppointmentCommand command = new AppointmentCommand(
+        101L, 202L, 303L,
+        "2026-03-22T14:00:00",
+        "Cliente Teste", "cliente@teste.com", "Primeira visita"
+      );
+      BookingResult bookingResult = new BookingResult(
+        "booking-uid-123", 999L, "accepted",
+        OffsetDateTime.parse("2026-03-22T17:00:00Z"),
+        null
+      );
+      when(repository.existsActiveByEstateAgentAndStartDateTime(
+        303L,
+        LocalDateTime.parse("2026-03-22T14:00:00")))
+        .thenReturn(false);
+      when(bookingGateway.createBooking(any(CreateBookingRequest.class))).thenReturn(bookingResult);
+      when(repository.save(any(Appointment.class))).thenAnswer(invocation -> {
+        Appointment appointment = invocation.getArgument(0);
+        appointment.setId(11L);
+        return appointment;
+      });
+
+      AppointmentOutput output = service.execute(command);
+
+      ArgumentCaptor<Appointment> repositoryCaptor = ArgumentCaptor.forClass(Appointment.class);
+      verify(repository).save(repositoryCaptor.capture());
+
+      Appointment saved = repositoryCaptor.getValue();
+      assertThat(saved.getStartDateTime()).isEqualTo(LocalDateTime.parse("2026-03-22T14:00:00"));
+      assertThat(saved.getEndDateTime()).isEqualTo(LocalDateTime.parse("2026-03-22T15:00:00"));
+      assertThat(saved.getDurationMinutes()).isEqualTo(60);
+      assertThat(output.endDateTime()).isEqualTo(LocalDateTime.parse("2026-03-22T15:00:00"));
+      assertThat(output.durationMinutes()).isEqualTo(60);
+    }
+
+    @Test
     @DisplayName("Deve lancar excecao quando startDateTime nao e informado")
     void shouldThrowException_whenStartDateTimeIsMissing() {
       AppointmentCommand command = new AppointmentCommand(

@@ -109,6 +109,38 @@ class RescheduleAppointmentServiceTest {
     }
 
     @Test
+    @DisplayName("Deve usar duracao padrao quando Cal.com nao retornar endTime no reagendamento")
+    void shouldUseDefaultDuration_whenCalComDoesNotReturnEndTimeOnReschedule() {
+      Appointment appointment = createAppointment(1L, "booking-123", Status.PENDING);
+      RescheduleAppointmentCommand command = new RescheduleAppointmentCommand(
+        1L, "2026-03-23T16:00:00", "Conflito de agenda"
+      );
+      when(repository.findById(1L)).thenReturn(Optional.of(appointment));
+      when(repository.existsActiveByEstateAgentAndStartDateTimeExcludingId(
+        33L,
+        LocalDateTime.parse("2026-03-23T16:00:00"),
+        1L)).thenReturn(false);
+      when(bookingGateway.rescheduleBooking(any(), any(), any(), any())).thenReturn(
+        new BookingResult(
+          "booking-456",
+          999L,
+          "accepted",
+          OffsetDateTime.parse("2026-03-23T19:00:00Z"),
+          null
+        )
+      );
+      when(repository.save(appointment)).thenReturn(appointment);
+
+      AppointmentOutput output = service.execute(command);
+
+      verify(repository).save(appointment);
+      assertThat(output.startDateTime()).isEqualTo(LocalDateTime.parse("2026-03-23T16:00:00"));
+      assertThat(output.endDateTime()).isEqualTo(LocalDateTime.parse("2026-03-23T17:00:00"));
+      assertThat(output.durationMinutes()).isEqualTo(60);
+      assertThat(output.bookingUid()).isEqualTo("booking-456");
+    }
+
+    @Test
     @DisplayName("Deve lancar excecao quando agendamento nao existe")
     void shouldThrowException_whenAppointmentDoesNotExist() {
       RescheduleAppointmentCommand command = new RescheduleAppointmentCommand(

@@ -15,11 +15,13 @@ import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.shared.validation.CommandValidator;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
 public class CreateAppointmentService implements CreateAppointmentUseCase {
 
   private static final ZoneId BRAZIL_TIME_ZONE = ZoneId.of("America/Sao_Paulo");
+  private static final int DEFAULT_APPOINTMENT_DURATION_MINUTES = 60;
 
   private final CalComBookingGateway bookingGateway;
   private final AppointmentRepository repository;
@@ -53,7 +55,7 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
       command.notes()
     ));
 
-    LocalDateTime actualEnd = result.endTime().atZoneSameInstant(BRAZIL_TIME_ZONE).toLocalDateTime();
+    LocalDateTime actualEnd = resolveEndDateTime(start, result.endTime());
 
     Appointment appointment = Appointment.createNew(
       command.eventTypeId(),
@@ -71,5 +73,13 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
     Appointment saved = repository.save(appointment);
 
     return AppointmentOutputMapper.toOutput(saved);
+  }
+
+  private LocalDateTime resolveEndDateTime(LocalDateTime startDateTime, OffsetDateTime calComEndDateTime) {
+    if (calComEndDateTime == null) {
+      return startDateTime.plusMinutes(DEFAULT_APPOINTMENT_DURATION_MINUTES);
+    }
+
+    return calComEndDateTime.atZoneSameInstant(BRAZIL_TIME_ZONE).toLocalDateTime();
   }
 }
