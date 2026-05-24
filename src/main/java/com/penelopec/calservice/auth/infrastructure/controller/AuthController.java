@@ -66,6 +66,6 @@ public class AuthController {
   })
   public ResponseEntity<ValidateTokenResponse> validateToken(@Valid @RequestBody ValidateTokenRequest request) {
     var output = validateTokenUseCase.execute(new ValidateTokenCommand(request.token()));
-    return ResponseEntity.ok(new ValidateTokenResponse(output.email(), output.accessLevel()));
+    return ResponseEntity.ok(new ValidateTokenResponse(output.email(), output.id(), output.accessLevel()));
   }
 }

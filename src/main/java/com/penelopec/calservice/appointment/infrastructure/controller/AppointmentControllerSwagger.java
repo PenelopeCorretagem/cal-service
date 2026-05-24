@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -149,7 +150,8 @@ public interface AppointmentControllerSwagger {
       )
     )
   })
-  ResponseEntity<AppointmentOutput> create(@Valid @RequestBody CreateAppointmentRequest request);
+  ResponseEntity<AppointmentOutput> create(@Valid @RequestBody CreateAppointmentRequest request,
+                                           Authentication authentication);
 
   // ──────────────────────────────────────────────
   // GET /appointments/{id}
@@ -218,7 +220,8 @@ public interface AppointmentControllerSwagger {
   })
   ResponseEntity<AppointmentOutput> getById(
     @Parameter(description = "ID do agendamento", example = "1", required = true)
-    @PathVariable Long id
+    @PathVariable Long id,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -283,7 +286,45 @@ public interface AppointmentControllerSwagger {
     @Parameter(description = "Data/hora inicial (ISO-8601)", example = "2026-04-10T14:00:00") @RequestParam(required = false) String startDateTime,
     @Parameter(description = "Data/hora final (ISO-8601)", example = "2026-04-10T18:00:00") @RequestParam(required = false) String endDateTime,
     @Parameter(description = "Página (base 0, padrão 0)", example = "0") @RequestParam(defaultValue = "0") Integer page,
-    @Parameter(description = "Tamanho da página (padrão 20, máximo 100)", example = "20") @RequestParam(defaultValue = "20") Integer size
+    @Parameter(description = "Tamanho da página (padrão 20, máximo 100)", example = "20") @RequestParam(defaultValue = "20") Integer size,
+    Authentication authentication
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /appointments/export
+  // ──────────────────────────────────────────────
+
+  @Operation(
+    summary = "Exportar agendamentos",
+    description = "Exporta agendamentos em formato CSV ou XLSX, com filtros opcionais por periodo e usuario."
+  )
+  @ApiResponses({
+    @ApiResponse(
+      responseCode = "200",
+      description = "Arquivo gerado com sucesso",
+      content = {
+        @Content(mediaType = "text/csv"),
+        @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      }
+    ),
+    @ApiResponse(
+      responseCode = "400",
+      description = "Formato invalido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou invalido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+  })
+  ResponseEntity<byte[]> export(
+    @Parameter(description = "ID do corretor para filtrar", example = "7")
+    @RequestParam(name = "idCorretor", required = false) Long idCorretor,
+    @Parameter(description = "Data inicial (yyyy-MM-dd)", example = "2026-04-01") @RequestParam(required = false) String periodoInicio,
+    @Parameter(description = "Data final (yyyy-MM-dd)", example = "2026-04-30") @RequestParam(required = false) String periodoFim,
+    @Parameter(description = "Formato do arquivo (csv ou xlsx)", example = "xlsx")
+    @RequestParam(required = false, defaultValue = "csv") String format
   );
 
   // ──────────────────────────────────────────────
@@ -382,7 +423,8 @@ public interface AppointmentControllerSwagger {
   ResponseEntity<AppointmentOutput> reschedule(
     @Parameter(description = "ID do agendamento a ser reagendado", example = "1", required = true)
     @PathVariable Long id,
-    @Valid @RequestBody RescheduleAppointmentRequest request
+    @Valid @RequestBody RescheduleAppointmentRequest request,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -479,7 +521,8 @@ public interface AppointmentControllerSwagger {
   ResponseEntity<AppointmentOutput> cancel(
     @Parameter(description = "ID do agendamento a ser cancelado", example = "1", required = true)
     @PathVariable Long id,
-    @RequestBody(required = false) CancelAppointmentRequest request
+    @RequestBody(required = false) CancelAppointmentRequest request,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -539,7 +582,8 @@ public interface AppointmentControllerSwagger {
   })
   ResponseEntity<AppointmentOutput> confirm(
     @Parameter(description = "ID do agendamento a ser confirmado", example = "1", required = true)
-    @PathVariable Long id
+    @PathVariable Long id,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -599,7 +643,8 @@ public interface AppointmentControllerSwagger {
   })
   ResponseEntity<AppointmentOutput> conclude(
     @Parameter(description = "ID do agendamento a ser concluído", example = "1", required = true)
-    @PathVariable Long id
+    @PathVariable Long id,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────

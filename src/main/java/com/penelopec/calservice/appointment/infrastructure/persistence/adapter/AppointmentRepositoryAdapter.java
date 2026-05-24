@@ -86,6 +86,29 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
   }
 
   @Override
+  public List<Appointment> findForExport(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+    Specification<AppointmentJpaEntity> spec = (root, query, cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+
+      if (userId != null) {
+        predicates.add(cb.equal(root.get("estateAgentId"), userId));
+      }
+      if (startDate != null) {
+        predicates.add(cb.greaterThanOrEqualTo(root.get("startDateTime"), startDate));
+      }
+      if (endDate != null) {
+        predicates.add(cb.lessThanOrEqualTo(root.get("endDateTime"), endDate));
+      }
+
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
+
+    return jpaRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "startDateTime")).stream()
+      .map(AppointmentJpaMapper::toDomain)
+      .toList();
+  }
+
+  @Override
   public void deleteById(Long id) {
     jpaRepository.deleteById(id);
   }

@@ -4,6 +4,7 @@ import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface AppointmentRepository {
@@ -21,6 +22,8 @@ public interface AppointmentRepository {
   PageResult<Appointment> findByFilters(Long clientId, Long estateAgentId, Long estateId,
                                         Status status, LocalDateTime startDate,
                                         LocalDateTime endDate, int page, int size);
+
+  List<Appointment> findForExport(Long userId, LocalDateTime startDate, LocalDateTime endDate);
 
   void deleteById(Long id);
 }
