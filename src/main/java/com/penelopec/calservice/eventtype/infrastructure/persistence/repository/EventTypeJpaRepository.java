@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface EventTypeJpaRepository extends JpaRepository<EventTypeJpaEntity, Long> {
 
   Optional<EventTypeJpaEntity> findByEstateId(Long estateId);
+
+  boolean existsByEstateId(Long estateId);
 }
