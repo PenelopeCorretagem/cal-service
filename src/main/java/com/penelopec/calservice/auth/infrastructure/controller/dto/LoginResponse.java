@@ -10,7 +10,7 @@ public record LoginResponse(
     @Schema(description = "Identificador único do usuário", example = "42")
     Long userId,
 
-    @Schema(description = "Nível de acesso do usuário", example = "ADMIN")
+    @Schema(description = "Nível de acesso do usuário", example = "administrador")
     String accessLevel
 ) {
 }

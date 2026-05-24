@@ -7,7 +7,10 @@ public record ValidateTokenResponse(
     @Schema(description = "E-mail do usuário associado ao token", example = "usuario@penelope.com.br")
     String email,
 
-    @Schema(description = "Nível de acesso do usuário", example = "ADMIN")
+    @Schema(description = "ID do usuario associado ao token", example = "1")
+    Long id,
+
+    @Schema(description = "Nível de acesso do usuário", example = "administrador")
     String accessLevel
 ) {
 }

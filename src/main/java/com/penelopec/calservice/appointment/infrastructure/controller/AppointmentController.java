@@ -6,17 +6,28 @@ import com.penelopec.calservice.appointment.application.command.ConcludeAppointm
 import com.penelopec.calservice.appointment.application.command.ConfirmAppointmentCommand;
 import com.penelopec.calservice.appointment.application.command.RescheduleAppointmentCommand;
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.application.query.ExportAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.usecase.*;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CreateAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.RescheduleAppointmentRequest;
+import com.penelopec.calservice.appointment.infrastructure.export.AppointmentExportFormatter;
 import com.penelopec.calservice.shared.pagination.Page;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @RestController
 @RequestMapping("/appointments")
@@ -30,6 +41,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
   private final ConfirmAppointmentUseCase confirmUseCase;
   private final ConcludeAppointmentUseCase concludeUseCase;
   private final DeleteAppointmentUseCase deleteUseCase;
+  private final ExportAppointmentsUseCase exportUseCase;
 
   public AppointmentController(CreateAppointmentUseCase createUseCase,
                                GetAppointmentUseCase getUseCase,
@@ -38,7 +50,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
                                CancelAppointmentUseCase cancelUseCase,
                                ConfirmAppointmentUseCase confirmUseCase,
                                ConcludeAppointmentUseCase concludeUseCase,
-                               DeleteAppointmentUseCase deleteUseCase) {
+                               DeleteAppointmentUseCase deleteUseCase,
+                               ExportAppointmentsUseCase exportUseCase) {
     this.createUseCase = createUseCase;
     this.getUseCase = getUseCase;
     this.listUseCase = listUseCase;
@@ -47,11 +60,15 @@ public class AppointmentController implements AppointmentControllerSwagger {
     this.confirmUseCase = confirmUseCase;
     this.concludeUseCase = concludeUseCase;
     this.deleteUseCase = deleteUseCase;
+    this.exportUseCase = exportUseCase;
   }
 
   @Override
   @PostMapping
-  public ResponseEntity<AppointmentOutput> create(@Valid @RequestBody CreateAppointmentRequest request) {
+  public ResponseEntity<AppointmentOutput> create(@Valid @RequestBody CreateAppointmentRequest request,
+                                                  Authentication authentication) {
+    assertBrokerOwnAppointment(authentication, request.estateAgentId());
+
     var command = new AppointmentCommand(
       request.eventTypeId(),
       request.clientId(),
@@ -70,8 +87,9 @@ public class AppointmentController implements AppointmentControllerSwagger {
 
   @Override
   @GetMapping("/{id}")
-  public ResponseEntity<AppointmentOutput> getById(@PathVariable Long id) {
+  public ResponseEntity<AppointmentOutput> getById(@PathVariable Long id, Authentication authentication) {
     AppointmentOutput output = getUseCase.execute(id);
+    assertBrokerOwnAppointment(authentication, output.estateAgentId());
     return ResponseEntity.ok(output);
   }
 
@@ -85,11 +103,14 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @RequestParam(required = false) String startDateTime,
     @RequestParam(required = false) String endDateTime,
     @RequestParam(defaultValue = "0") Integer page,
-    @RequestParam(defaultValue = "20") Integer size
+    @RequestParam(defaultValue = "20") Integer size,
+    Authentication authentication
   ) {
+    Long effectiveEstateAgentId = isBroker(authentication) ? currentUserId(authentication) : estateAgentId;
+
     var query = new ListAppointmentsQuery(
       clientId,
-      estateAgentId,
+      effectiveEstateAgentId,
       estateId,
       status,
       startDateTime,
@@ -106,8 +127,11 @@ public class AppointmentController implements AppointmentControllerSwagger {
   @PatchMapping("/{id}/reschedule")
   public ResponseEntity<AppointmentOutput> reschedule(
     @PathVariable Long id,
-    @Valid @RequestBody RescheduleAppointmentRequest request
+    @Valid @RequestBody RescheduleAppointmentRequest request,
+    Authentication authentication
   ) {
+    assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
+
     var command = new RescheduleAppointmentCommand(
       id,
       request.startDateTime(),
@@ -122,8 +146,11 @@ public class AppointmentController implements AppointmentControllerSwagger {
   @PostMapping("/{id}/cancel")
   public ResponseEntity<AppointmentOutput> cancel(
     @PathVariable Long id,
-    @RequestBody(required = false) CancelAppointmentRequest request
+    @RequestBody(required = false) CancelAppointmentRequest request,
+    Authentication authentication
   ) {
+    assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
+
     String reason = request != null ? request.reason() : null;
     var command = new CancelAppointmentCommand(id, reason);
 
@@ -133,16 +160,50 @@ public class AppointmentController implements AppointmentControllerSwagger {
 
   @Override
   @PostMapping("/{id}/confirm")
-  public ResponseEntity<AppointmentOutput> confirm(@PathVariable Long id) {
+  public ResponseEntity<AppointmentOutput> confirm(@PathVariable Long id, Authentication authentication) {
+    assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
     AppointmentOutput output = confirmUseCase.execute(new ConfirmAppointmentCommand(id));
     return ResponseEntity.ok(output);
   }
 
   @Override
   @PostMapping("/{id}/conclude")
-  public ResponseEntity<AppointmentOutput> conclude(@PathVariable Long id) {
+  public ResponseEntity<AppointmentOutput> conclude(@PathVariable Long id, Authentication authentication) {
+    assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
     AppointmentOutput output = concludeUseCase.execute(new ConcludeAppointmentCommand(id));
     return ResponseEntity.ok(output);
+  }
+
+  @GetMapping("/export")
+  public ResponseEntity<byte[]> export(
+    @RequestParam(name = "idCorretor", required = false) Long idCorretor,
+    @RequestParam(required = false) String periodoInicio,
+    @RequestParam(required = false) String periodoFim,
+    @RequestParam(required = false, defaultValue = "csv") String format
+  ) {
+    String normalizedFormat = format == null ? "" : format.trim().toLowerCase();
+    if (!"csv".equals(normalizedFormat) && !"xlsx".equals(normalizedFormat)) {
+      throw new ResponseStatusException(BAD_REQUEST, "Formato invalido. Use csv ou xlsx");
+    }
+
+    List<AppointmentOutput> appointments = exportUseCase.execute(
+      new ExportAppointmentsQuery(idCorretor, periodoInicio, periodoFim)
+    );
+
+    if ("xlsx".equals(normalizedFormat)) {
+      byte[] bytes = AppointmentExportFormatter.toXlsx(appointments);
+      return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=agendamentos.xlsx")
+        .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+        .body(bytes);
+    }
+
+    String csv = AppointmentExportFormatter.toCsv(appointments);
+
+    return ResponseEntity.ok()
+      .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=agendamentos.csv")
+      .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+      .body(csv.getBytes(StandardCharsets.UTF_8));
   }
 
   @Override
@@ -151,4 +212,28 @@ public class AppointmentController implements AppointmentControllerSwagger {
     deleteUseCase.execute(id);
     return ResponseEntity.noContent().build();
   }
+
+  private void assertBrokerOwnAppointment(Authentication authentication, Long estateAgentId) {
+    if (isBroker(authentication) && !currentUserId(authentication).equals(estateAgentId)) {
+      throw new ResponseStatusException(FORBIDDEN, "Corretores só podem operar seus próprios agendamentos");
+    }
+  }
+
+  private boolean isBroker(Authentication authentication) {
+    return hasRole(authentication, "ROLE_CORRETOR");
+  }
+
+  private Long currentUserId(Authentication authentication) {
+    try {
+      return Long.valueOf(authentication.getName());
+    } catch (RuntimeException ex) {
+      throw new ResponseStatusException(FORBIDDEN, "Usuário autenticado sem ID válido");
+    }
+  }
+
+  private boolean hasRole(Authentication authentication, String role) {
+    return authentication != null && authentication.getAuthorities().stream()
+      .anyMatch(authority -> role.equals(authority.getAuthority()));
+  }
+
 }

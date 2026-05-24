@@ -50,6 +50,11 @@ public class AppointmentConfig {
   }
 
   @Bean
+  public ExportAppointmentsUseCase exportAppointmentsUseCase(AppointmentRepository repository) {
+    return new ExportAppointmentsService(repository);
+  }
+
+  @Bean
   public ChangeAppointmentUseCase rescheduleAppointmentUseCase(CalComBookingGateway gateway,
                                                                AppointmentRepository repository) {
     return new RescheduleAppointmentService(gateway, repository, new RescheduleAppointmentCommandValidator());
