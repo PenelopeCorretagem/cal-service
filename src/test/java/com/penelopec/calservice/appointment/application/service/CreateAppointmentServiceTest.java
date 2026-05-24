@@ -58,8 +58,8 @@ class CreateAppointmentServiceTest {
       );
       BookingResult bookingResult = new BookingResult(
         "booking-uid-123", 999L, "accepted",
-        OffsetDateTime.parse("2026-03-22T14:00:00Z"),
-        OffsetDateTime.parse("2026-03-22T15:00:00Z")
+        OffsetDateTime.parse("2026-03-22T17:00:00Z"),
+        OffsetDateTime.parse("2026-03-22T18:00:00Z")
       );
       when(repository.existsActiveByEstateAgentAndStartDateTime(
         303L,
@@ -82,7 +82,7 @@ class CreateAppointmentServiceTest {
       CreateBookingRequest request = gatewayCaptor.getValue();
       assertThat(request.eventTypeId()).isEqualTo(101L);
       assertThat(request.startTime()).isEqualTo(OffsetDateTime.parse("2026-03-22T14:00:00-03:00"));
-      assertThat(request.endTime()).isEqualTo(OffsetDateTime.parse("2026-03-22T15:00:00-03:00"));
+      assertThat(request.endTime()).isNull();
       assertThat(request.attendeeName()).isEqualTo("Cliente Teste");
       assertThat(request.attendeeEmail()).isEqualTo("cliente@teste.com");
       assertThat(request.notes()).isEqualTo("Primeira visita");

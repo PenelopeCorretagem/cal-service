@@ -6,6 +6,9 @@ import com.penelopec.calservice.appointment.application.command.ConcludeAppointm
 import com.penelopec.calservice.appointment.application.command.ConfirmAppointmentCommand;
 import com.penelopec.calservice.appointment.application.command.RescheduleAppointmentCommand;
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.application.output.AvailableSlotsOutput;
+import com.penelopec.calservice.appointment.application.output.ScheduleOutput;
+import com.penelopec.calservice.appointment.application.query.GetAvailableSlotsQuery;
 import com.penelopec.calservice.appointment.application.query.ExportAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.usecase.*;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -41,6 +45,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
   private final ConfirmAppointmentUseCase confirmUseCase;
   private final ConcludeAppointmentUseCase concludeUseCase;
   private final DeleteAppointmentUseCase deleteUseCase;
+  private final GetSchedulesUseCase getSchedulesUseCase;
+  private final GetAvailableSlotsUseCase getAvailableSlotsUseCase;
   private final ExportAppointmentsUseCase exportUseCase;
 
   public AppointmentController(CreateAppointmentUseCase createUseCase,
@@ -51,6 +57,9 @@ public class AppointmentController implements AppointmentControllerSwagger {
                                ConfirmAppointmentUseCase confirmUseCase,
                                ConcludeAppointmentUseCase concludeUseCase,
                                DeleteAppointmentUseCase deleteUseCase,
+                               GetSchedulesUseCase getSchedulesUseCase,
+                               GetAvailableSlotsUseCase getAvailableSlotsUseCase) {
+                               DeleteAppointmentUseCase deleteUseCase,
                                ExportAppointmentsUseCase exportUseCase) {
     this.createUseCase = createUseCase;
     this.getUseCase = getUseCase;
@@ -60,6 +69,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
     this.confirmUseCase = confirmUseCase;
     this.concludeUseCase = concludeUseCase;
     this.deleteUseCase = deleteUseCase;
+    this.getSchedulesUseCase = getSchedulesUseCase;
+    this.getAvailableSlotsUseCase = getAvailableSlotsUseCase;
     this.exportUseCase = exportUseCase;
   }
 
@@ -211,6 +222,25 @@ public class AppointmentController implements AppointmentControllerSwagger {
   public ResponseEntity<Void> delete(@PathVariable Long id) {
     deleteUseCase.execute(id);
     return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  @GetMapping("/schedules")
+  public ResponseEntity<List<ScheduleOutput>> getSchedules() {
+    List<ScheduleOutput> output = getSchedulesUseCase.execute();
+    return ResponseEntity.ok(output);
+  }
+
+  @Override
+  @GetMapping("/slots")
+  public ResponseEntity<AvailableSlotsOutput> getAvailableSlots(
+    @RequestParam Long eventTypeId,
+    @RequestParam String start,
+    @RequestParam String end
+  ) {
+    var query = new GetAvailableSlotsQuery(eventTypeId, start, end);
+    AvailableSlotsOutput output = getAvailableSlotsUseCase.execute(query);
+    return ResponseEntity.ok(output);
   }
 
   private void assertBrokerOwnAppointment(Authentication authentication, Long estateAgentId) {
