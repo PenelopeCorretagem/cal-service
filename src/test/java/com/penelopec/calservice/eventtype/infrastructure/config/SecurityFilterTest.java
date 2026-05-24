@@ -48,7 +48,7 @@ class SecurityFilterTest {
     FilterChain filterChain = mock(FilterChain.class);
 
     when(validateTokenUseCase.execute(new ValidateTokenCommand("valid-token")))
-      .thenReturn(new ValidateTokenOutput("user@penelopec.com", "admin"));
+      .thenReturn(new ValidateTokenOutput("user@penelopec.com", 1L, "admin"));
 
     securityFilter.doFilterInternal(request, response, filterChain);
 
@@ -70,7 +70,7 @@ class SecurityFilterTest {
     FilterChain filterChain = mock(FilterChain.class);
 
     when(validateTokenUseCase.execute(new ValidateTokenCommand("valid-token")))
-      .thenReturn(new ValidateTokenOutput("", "admin"));
+      .thenReturn(new ValidateTokenOutput("", 1L, "administrador"));
 
     securityFilter.doFilterInternal(request, response, filterChain);
 
