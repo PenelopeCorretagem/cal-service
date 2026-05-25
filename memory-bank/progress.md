@@ -1,6 +1,6 @@
 # Progress — cal-service
 
-**Última atualização**: 2026-04-20 (TASK019 concluída)
+**Última atualização**: 2026-05-20 (TASK020 concluida)
 
 ## Status Geral
 
@@ -24,6 +24,7 @@
 | Paginação Event Types (TASK017) | ✅ Concluída     | `GET /event-types` paginado com `Page<T>` na application e contrato OpenAPI atualizado |
 | Paginação Compartilhada (TASK018) | ✅ Concluída    | `Page<T>` centralizada em `shared.pagination` e fluxo de `ListAppointments` migrado |
 | Consolidação de Errors + Review Fixes (TASK019) | ✅ Concluída | Enums de validação consolidados por contexto + correções de segurança, retry AMQP e mensagens de validação |
+| CI/CD Pipelines (TASK020) | ✅ Concluída | Workflow do `penelope-api-rest` replicado em `authentication-service` e `cal-service`, com build/test/docker e tags Docker dedicadas |
 
 
 ## O Que Funciona
@@ -83,7 +84,6 @@
 ## O Que Falta Construir
 
 ### Média Prioridade
-- [ ] Configurar CI/CD pipeline.
 - [ ] Definir estratégia de migration de schema (Flyway/Liquibase).
 
 ## Problemas Conhecidos
