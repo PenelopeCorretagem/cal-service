@@ -24,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.net.URI;
 import java.util.List;
@@ -78,7 +79,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @PostMapping
     public ResponseEntity<AppointmentOutput> create(@Valid @RequestBody CreateAppointmentRequest request,
                                                     Authentication authentication) {
-        assertBrokerOwnAppointment(authentication, request.estateAgentId());
+        assertCanCreateAppointment(authentication, request.clientId(), request.estateAgentId());
 
         var command = new AppointmentCommand(
                 request.eventTypeId(),
@@ -100,7 +101,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @GetMapping("/{id}")
     public ResponseEntity<AppointmentOutput> getById(@PathVariable Long id, Authentication authentication) {
         AppointmentOutput output = getUseCase.execute(id);
-        assertBrokerOwnAppointment(authentication, output.estateAgentId());
+        assertCanViewAppointment(authentication, output.clientId(), output.estateAgentId());
         return ResponseEntity.ok(output);
     }
 
@@ -118,9 +119,18 @@ public class AppointmentController implements AppointmentControllerSwagger {
             Authentication authentication
     ) {
         Long effectiveEstateAgentId = isBroker(authentication) ? currentUserId(authentication) : estateAgentId;
+        Long effectiveClientId = isClient(authentication) ? currentUserId(authentication) : clientId;
+
+        if (isBroker(authentication) && estateAgentId != null && !currentUserId(authentication).equals(estateAgentId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem listar seus próprios agendamentos");
+        }
+
+        if (isClient(authentication) && clientId != null && !currentUserId(authentication).equals(clientId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Clientes só podem listar seus próprios agendamentos");
+        }
 
         var query = new ListAppointmentsQuery(
-                clientId,
+                effectiveClientId,
                 effectiveEstateAgentId,
                 estateId,
                 status,
@@ -141,7 +151,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
             @Valid @RequestBody RescheduleAppointmentRequest request,
             Authentication authentication
     ) {
-        assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
+        AppointmentOutput currentAppointment = getUseCase.execute(id);
+        assertCanMutateAppointment(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
 
         var command = new RescheduleAppointmentCommand(
                 id,
@@ -160,7 +171,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
             @RequestBody(required = false) CancelAppointmentRequest request,
             Authentication authentication
     ) {
-        assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
+        AppointmentOutput currentAppointment = getUseCase.execute(id);
+        assertCanMutateAppointment(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
 
         String reason = request != null ? request.reason() : null;
         var command = new CancelAppointmentCommand(id, reason);
@@ -172,7 +184,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @Override
     @PostMapping("/{id}/confirm")
     public ResponseEntity<AppointmentOutput> confirm(@PathVariable Long id, Authentication authentication) {
-        assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
+        AppointmentOutput currentAppointment = getUseCase.execute(id);
+        assertCanConfirmOrConclude(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
         AppointmentOutput output = confirmUseCase.execute(new ConfirmAppointmentCommand(id));
         return ResponseEntity.ok(output);
     }
@@ -180,7 +193,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @Override
     @PostMapping("/{id}/conclude")
     public ResponseEntity<AppointmentOutput> conclude(@PathVariable Long id, Authentication authentication) {
-        assertBrokerOwnAppointment(authentication, getUseCase.execute(id).estateAgentId());
+        AppointmentOutput currentAppointment = getUseCase.execute(id);
+        assertCanConfirmOrConclude(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
         AppointmentOutput output = concludeUseCase.execute(new ConcludeAppointmentCommand(id));
         return ResponseEntity.ok(output);
     }
@@ -220,6 +234,9 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @Override
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        AppointmentOutput currentAppointment = getUseCase.execute(id);
+        assertCanDeleteAppointment(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
         deleteUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
@@ -243,6 +260,78 @@ public class AppointmentController implements AppointmentControllerSwagger {
         return ResponseEntity.ok(output);
     }
 
+    private void assertCanCreateAppointment(Authentication authentication, Long clientId, Long estateAgentId) {
+        if (isAdmin(authentication)) {
+            return;
+        }
+
+        Long currentUserId = currentUserId(authentication);
+        if (isClient(authentication) && !currentUserId.equals(clientId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Clientes só podem criar agendamentos em seu próprio nome");
+        }
+
+        if (isBroker(authentication) && !currentUserId.equals(estateAgentId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem criar agendamentos vinculados a si mesmos");
+        }
+    }
+
+    private void assertCanViewAppointment(Authentication authentication, Long clientId, Long estateAgentId) {
+        if (isAdmin(authentication)) {
+            return;
+        }
+
+        Long currentUserId = currentUserId(authentication);
+        if (isClient(authentication) && !currentUserId.equals(clientId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Clientes só podem visualizar seus próprios agendamentos");
+        }
+
+        if (isBroker(authentication) && !currentUserId.equals(estateAgentId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem operar seus próprios agendamentos");
+        }
+    }
+
+    private void assertCanMutateAppointment(Authentication authentication, Long clientId, Long estateAgentId) {
+        if (isAdmin(authentication)) {
+            return;
+        }
+
+        Long currentUserId = currentUserId(authentication);
+        if (isClient(authentication) && !currentUserId.equals(clientId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Clientes só podem alterar seus próprios agendamentos");
+        }
+
+        if (isBroker(authentication) && !currentUserId.equals(estateAgentId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem operar seus próprios agendamentos");
+        }
+    }
+
+    private void assertCanDeleteAppointment(Authentication authentication, Long clientId, Long estateAgentId) {
+        if (isAdmin(authentication)) {
+            return;
+        }
+
+        Long currentUserId = currentUserId(authentication);
+        if (isClient(authentication)) {
+            throw new ResponseStatusException(FORBIDDEN, "Clientes não podem excluir agendamentos");
+        }
+
+        if (isBroker(authentication) && !currentUserId.equals(estateAgentId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem excluir seus próprios agendamentos");
+        }
+    }
+
+    private void assertCanConfirmOrConclude(Authentication authentication, Long clientId, Long estateAgentId) {
+        if (isAdmin(authentication)) {
+            return;
+        }
+
+        if (!isBroker(authentication)) {
+            throw new ResponseStatusException(FORBIDDEN, "Somente corretores e administradores podem confirmar ou concluir agendamentos");
+        }
+
+        assertBrokerOwnAppointment(authentication, estateAgentId);
+    }
+
     private void assertBrokerOwnAppointment(Authentication authentication, Long estateAgentId) {
         if (isBroker(authentication) && !currentUserId(authentication).equals(estateAgentId)) {
             throw new ResponseStatusException(FORBIDDEN, "Corretores só podem operar seus próprios agendamentos");
@@ -251,6 +340,14 @@ public class AppointmentController implements AppointmentControllerSwagger {
 
     private boolean isBroker(Authentication authentication) {
         return hasRole(authentication, "ROLE_CORRETOR");
+    }
+
+    private boolean isClient(Authentication authentication) {
+        return hasRole(authentication, "ROLE_CLIENTE");
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return hasRole(authentication, "ROLE_ADMINISTRADOR");
     }
 
     private Long currentUserId(Authentication authentication) {
