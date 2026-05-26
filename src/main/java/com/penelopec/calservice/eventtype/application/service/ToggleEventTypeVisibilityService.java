@@ -6,8 +6,12 @@ import com.penelopec.calservice.eventtype.application.port.in.ToggleEventTypeVis
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.shared.cache.CacheNames;
 import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Caching;
 
 public class ToggleEventTypeVisibilityService implements ToggleEventTypeVisibilityUseCase {
 
@@ -21,6 +25,11 @@ public class ToggleEventTypeVisibilityService implements ToggleEventTypeVisibili
   }
 
   @Override
+    @Caching(evict = {
+      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true)
+    }, put = {
+      @CachePut(value = CacheNames.EVENT_TYPE, key = "#eventTypeId")
+    })
   public EventTypeOutput execute(Long eventTypeId) {
     EventType eventType = eventTypeRepository.findById(eventTypeId)
       .orElseThrow(() -> new DomainException(EventTypeError.NOT_FOUND, eventTypeId));

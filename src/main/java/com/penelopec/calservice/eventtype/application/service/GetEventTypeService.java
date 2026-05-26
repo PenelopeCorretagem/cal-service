@@ -6,8 +6,10 @@ import com.penelopec.calservice.eventtype.application.port.in.GetEventTypeUseCas
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.shared.cache.CacheNames;
 import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import org.springframework.cache.annotation.Cacheable;
 
 public class GetEventTypeService implements GetEventTypeUseCase {
 
@@ -21,6 +23,7 @@ public class GetEventTypeService implements GetEventTypeUseCase {
   }
 
   @Override
+  @Cacheable(value = CacheNames.EVENT_TYPE, key = "#eventTypeId")
   public EventTypeOutput execute(Long eventTypeId) {
     EventType eventType = calComGateway.findById(eventTypeId)
       .orElseThrow(() -> new DomainException(EventTypeError.NOT_FOUND, eventTypeId));
