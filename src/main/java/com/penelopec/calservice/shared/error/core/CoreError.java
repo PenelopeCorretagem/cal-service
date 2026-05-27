@@ -96,6 +96,12 @@ public enum CoreError implements ErrorContract {
     "AUTH-GATEWAY-FAILED",
     "Falha ao conectar com o serviço de autenticação.",
     ErrorSeverity.ERROR
+  ),
+
+  USER_GATEWAY_FAILED(
+    "USER-GATEWAY-FAILED",
+    "Falha ao conectar com o serviço de usuários.",
+    ErrorSeverity.ERROR
   );
 
   private final String code;

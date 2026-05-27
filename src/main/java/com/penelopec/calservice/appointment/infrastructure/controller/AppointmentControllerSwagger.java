@@ -296,7 +296,7 @@ public interface AppointmentControllerSwagger {
 
   @Operation(
     summary = "Exportar agendamentos",
-    description = "Exporta agendamentos em formato CSV ou XLSX, com filtros opcionais por periodo e usuario."
+    description = "Exporta agendamentos em formato CSV ou XLSX, com filtros opcionais por periodo, status e usuario."
   )
   @ApiResponses({
     @ApiResponse(
@@ -323,6 +323,8 @@ public interface AppointmentControllerSwagger {
     @RequestParam(name = "idCorretor", required = false) Long idCorretor,
     @Parameter(description = "Data inicial (yyyy-MM-dd)", example = "2026-04-01") @RequestParam(required = false) String periodoInicio,
     @Parameter(description = "Data final (yyyy-MM-dd)", example = "2026-04-30") @RequestParam(required = false) String periodoFim,
+    @Parameter(description = "Filtra por status (PENDING, CONFIRMED, CANCELLED, CONCLUDED)", example = "CONFIRMED")
+    @RequestParam(required = false) String status,
     @Parameter(description = "Formato do arquivo (csv ou xlsx)", example = "xlsx")
     @RequestParam(required = false, defaultValue = "csv") String format
   );

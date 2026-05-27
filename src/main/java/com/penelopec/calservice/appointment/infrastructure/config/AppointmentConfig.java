@@ -4,6 +4,7 @@ import com.penelopec.calservice.appointment.application.service.*;
 import com.penelopec.calservice.appointment.application.usecase.*;
 import com.penelopec.calservice.appointment.application.validator.AppointmentCommandValidator;
 import com.penelopec.calservice.appointment.application.validator.CancelAppointmentCommandValidator;
+import com.penelopec.calservice.appointment.application.validator.ExportAppointmentsQueryValidator;
 import com.penelopec.calservice.appointment.application.validator.ListAppointmentsQueryValidator;
 import com.penelopec.calservice.appointment.application.validator.RescheduleAppointmentCommandValidator;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
@@ -11,9 +12,11 @@ import com.penelopec.calservice.appointment.domain.gateway.CalComScheduleGateway
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter.CalComBookingAdapter;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter.CalComScheduleAdapter;
+import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import com.penelopec.calservice.eventtype.infrastructure.config.properties.CalcomProperties;
 import com.penelopec.calservice.shared.http.config.RestClientBuilderFactory;
 import com.penelopec.calservice.shared.http.executor.RestExecutor;
+import com.penelopec.calservice.user.domain.gateway.UserGateway;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
@@ -67,8 +70,15 @@ public class AppointmentConfig {
   }
 
   @Bean
-  public ExportAppointmentsUseCase exportAppointmentsUseCase(AppointmentRepository repository) {
-    return new ExportAppointmentsService(repository);
+  public ExportAppointmentsUseCase exportAppointmentsUseCase(AppointmentRepository repository,
+                                                             EventTypeRepository eventTypeRepository,
+                                                             UserGateway userGateway) {
+    return new ExportAppointmentsService(
+      repository,
+      eventTypeRepository,
+      userGateway,
+      new ExportAppointmentsQueryValidator()
+    );
   }
 
   @Bean

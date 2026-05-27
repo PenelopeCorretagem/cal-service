@@ -86,7 +86,8 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
   }
 
   @Override
-  public List<Appointment> findForExport(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+  public List<Appointment> findForExport(Long userId, LocalDateTime startDate,
+                                         LocalDateTime endDate, Status status) {
     Specification<AppointmentJpaEntity> spec = (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
 
@@ -98,6 +99,9 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
       }
       if (endDate != null) {
         predicates.add(cb.lessThanOrEqualTo(root.get("endDateTime"), endDate));
+      }
+      if (status != null) {
+        predicates.add(cb.equal(root.get("status"), status.name()));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));

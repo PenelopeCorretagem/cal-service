@@ -6,6 +6,7 @@ import com.penelopec.calservice.appointment.application.command.ConcludeAppointm
 import com.penelopec.calservice.appointment.application.command.ConfirmAppointmentCommand;
 import com.penelopec.calservice.appointment.application.command.RescheduleAppointmentCommand;
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.application.output.ExportAppointmentOutput;
 import com.penelopec.calservice.appointment.application.output.AvailableSlotsOutput;
 import com.penelopec.calservice.appointment.application.output.ScheduleOutput;
 import com.penelopec.calservice.appointment.application.query.GetAvailableSlotsQuery;
@@ -27,7 +28,6 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.net.URI;
-import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -204,6 +204,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
             @RequestParam(name = "idCorretor", required = false) Long idCorretor,
             @RequestParam(required = false) String periodoInicio,
             @RequestParam(required = false) String periodoFim,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false, defaultValue = "csv") String format
     ) {
         String normalizedFormat = format == null ? "" : format.trim().toLowerCase();
@@ -211,8 +212,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
             throw new ResponseStatusException(BAD_REQUEST, "Formato invalido. Use csv ou xlsx");
         }
 
-        List<AppointmentOutput> appointments = exportUseCase.execute(
-                new ExportAppointmentsQuery(idCorretor, periodoInicio, periodoFim)
+        List<ExportAppointmentOutput> appointments = exportUseCase.execute(
+            new ExportAppointmentsQuery(idCorretor, periodoInicio, periodoFim, status)
         );
 
         if ("xlsx".equals(normalizedFormat)) {

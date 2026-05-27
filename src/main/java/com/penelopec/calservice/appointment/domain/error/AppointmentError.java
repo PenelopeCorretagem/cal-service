@@ -193,6 +193,27 @@ public enum AppointmentError implements ErrorContract {
         "Formato de data/hora inválido para endDateTime. Use ISO-8601 (ex: 2026-04-19T11:00:00).",
         ErrorType.VALIDATION,
         ErrorSeverity.WARN
+    ),
+
+    EXPORT_STATUS_INVALID(
+        "APPT-VAL-EXPORT-STATUS-INVALID",
+        "status inválido: '%s'.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    EXPORT_START_DATE_INVALID(
+        "APPT-VAL-EXPORT-START-DATE-INVALID",
+        "Formato de data inválido para periodoInicio. Use yyyy-MM-dd.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
+    ),
+
+    EXPORT_END_DATE_INVALID(
+        "APPT-VAL-EXPORT-END-DATE-INVALID",
+        "Formato de data inválido para periodoFim. Use yyyy-MM-dd.",
+        ErrorType.VALIDATION,
+        ErrorSeverity.WARN
     );
 
     private final String code;
