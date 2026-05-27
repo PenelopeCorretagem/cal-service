@@ -3,6 +3,7 @@ package com.penelopec.calservice.eventtype.infrastructure.web.calcom.adapter;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import com.penelopec.calservice.shared.error.core.GatewayException;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComApiResponse;
 import com.penelopec.calservice.eventtype.infrastructure.web.calcom.dto.CalComEventTypeRequest;
@@ -27,6 +28,7 @@ public class CalComEventTypeAdapter implements CalComEventTypeGateway {
 
   private final RestClient restClient;
   private final RestExecutor restExecutor;
+  private final EventTypeRepository eventTypeRepository;
 
   private static final ParameterizedTypeReference<CalComApiResponse<CalComEventTypeResponse>>
     SINGLE_TYPE = new ParameterizedTypeReference<>() {};
@@ -37,9 +39,10 @@ public class CalComEventTypeAdapter implements CalComEventTypeGateway {
   private static final ParameterizedTypeReference<CalComApiResponse<CalComUser>>
     USER_TYPE = new ParameterizedTypeReference<>() {};
 
-  public CalComEventTypeAdapter(RestClient calRestClient, RestExecutor restExecutor) {
+  public CalComEventTypeAdapter(RestClient calRestClient, RestExecutor restExecutor, EventTypeRepository eventTypeRepository) {
     this.restClient = calRestClient;
     this.restExecutor = restExecutor;
+    this.eventTypeRepository = eventTypeRepository;
   }
 
   @Override
@@ -109,7 +112,12 @@ public class CalComEventTypeAdapter implements CalComEventTypeGateway {
       );
 
       return Optional.ofNullable(response)
-        .map(r -> CalComEventTypeMapper.toDomain(r, null));
+        .map(r -> {
+          Long estateId = eventTypeRepository.findById(r.id())
+              .map(EventType::getEstateId)
+              .orElse(null);
+          return CalComEventTypeMapper.toDomain(r, estateId);
+        });
 
     } catch (RemoteNotFoundException e) {
       return Optional.empty();
@@ -136,7 +144,12 @@ public class CalComEventTypeAdapter implements CalComEventTypeGateway {
         .orElse(List.of());
 
       return responses.stream()
-        .map(r -> CalComEventTypeMapper.toDomain(r, null))
+        .map(r -> {
+          Long estateId = eventTypeRepository.findById(r.id())
+              .map(EventType::getEstateId)
+              .orElse(null);
+          return CalComEventTypeMapper.toDomain(r, estateId);
+        })
         .toList();
 
     } catch (RemoteServiceException e) {

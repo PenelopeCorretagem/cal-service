@@ -28,7 +28,7 @@ spring:
 
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
 
 calcom:
   api:
@@ -41,7 +41,7 @@ monolith:
   api:
     base-url: ${MONOLITH_BASE_URL:http://localhost:8081}
     token: ${MONOLITH_API_TOKEN:}
-    estates-path: ${MONOLITH_ESTATES_PATH:/api/empreendimentos}
+    advertisements-path: ${MONOLITH_ADVERTISEMENTS_PATH:/v1/advertisements}
 
 auth-service:
   base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:9000/api}

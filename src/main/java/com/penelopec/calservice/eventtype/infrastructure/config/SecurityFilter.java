@@ -47,7 +47,9 @@ public class SecurityFilter extends OncePerRequestFilter {
 
         if (isValidOutput(output)) {
           var authority = new SimpleGrantedAuthority("ROLE_" + output.accessLevel().toUpperCase(Locale.ROOT));
-          var authentication = new UsernamePasswordAuthenticationToken(output.email(), null, List.of(authority));
+          String principal = output.id() != null ? output.id().toString() : output.email();
+          var authentication = new UsernamePasswordAuthenticationToken(principal, null, List.of(authority));
+          authentication.setDetails(output.email());
           SecurityContextHolder.getContext().setAuthentication(authentication);
         } else {
           SecurityContextHolder.clearContext();

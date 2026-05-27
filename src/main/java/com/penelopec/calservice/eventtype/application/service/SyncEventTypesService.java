@@ -1,133 +1,96 @@
 package com.penelopec.calservice.eventtype.application.service;
 
+import com.penelopec.calservice.eventtype.application.command.CreateEventTypeCommand;
+import com.penelopec.calservice.eventtype.application.command.UpdateEventTypeCommand;
+import com.penelopec.calservice.eventtype.application.port.in.ChangeEventTypeUseCase;
+import com.penelopec.calservice.eventtype.application.port.in.CreateEventTypeUseCase;
 import com.penelopec.calservice.eventtype.application.port.in.SyncEventTypesUseCase;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
+import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
-import com.penelopec.calservice.eventtype.domain.valueobject.EstateData;
-import com.penelopec.calservice.eventtype.domain.gateway.EstateGateway;
+import com.penelopec.calservice.eventtype.domain.gateway.AdvertisementGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.AdvertisementResponse;
+import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.EstateResponse;
+import com.penelopec.calservice.shared.error.core.DomainException;
+import com.penelopec.calservice.shared.error.core.GatewayException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class SyncEventTypesService implements SyncEventTypesUseCase {
 
   private static final Logger log = LoggerFactory.getLogger(SyncEventTypesService.class);
 
-  private final EstateGateway estateGateway;
-  private final CalComEventTypeGateway calComGateway;
+  private final AdvertisementGateway advertisementGateway;
   private final EventTypeRepository eventTypeRepository;
+  private final CreateEventTypeUseCase  createEventTypeUseCase;
+  private final ChangeEventTypeUseCase changeEventTypeUseCase;
 
-  public SyncEventTypesService(EstateGateway estateGateway,
-                               CalComEventTypeGateway calComGateway,
-                               EventTypeRepository eventTypeRepository) {
-    this.estateGateway = estateGateway;
-    this.calComGateway = calComGateway;
+  public SyncEventTypesService(
+    AdvertisementGateway advertisementGateway,
+    EventTypeRepository eventTypeRepository,
+    CreateEventTypeUseCase createEventTypeUseCase,
+    ChangeEventTypeUseCase changeEventTypeUseCase) {
+
+    this.advertisementGateway = advertisementGateway;
     this.eventTypeRepository = eventTypeRepository;
+    this.createEventTypeUseCase = createEventTypeUseCase;
+    this.changeEventTypeUseCase = changeEventTypeUseCase;
   }
 
   @Override
   public void execute() {
-    List<EstateData> estates = estateGateway.fetchAllEstates();
-    List<EventType> existingEventTypes = eventTypeRepository.findAll();
+    try {
+      advertisementGateway.fetchAllAdvertisements().forEach(
+        advertisement -> {
+          EstateResponse estate = advertisement.estate();
 
-    List<Long> duplicatedEstateIds = existingEventTypes.stream()
-      .collect(Collectors.groupingBy(EventType::getEstateId, Collectors.counting()))
-      .entrySet().stream()
-      .filter(entry -> entry.getValue() > 1)
-      .map(Map.Entry::getKey)
-      .toList();
+          EventType eventType = eventTypeRepository.findByEstateId(estate.id()).orElse(null);
 
-    if (!duplicatedEstateIds.isEmpty()) {
-      throw new IllegalStateException(
-        "Foram encontrados EventTypes duplicados por empreendimento: " + duplicatedEstateIds);
-    }
+          if (eventType == null) {
+            createEventType(advertisement);
+            return;
+          }
 
-    Map<Long, EventType> byEstateId = existingEventTypes.stream()
-      .collect(Collectors.toMap(EventType::getEstateId, Function.identity(), (a, b) -> a));
-
-    Set<Long> activeEstateIds = estates.stream()
-      .filter(EstateData::active)
-      .map(EstateData::id)
-      .collect(Collectors.toSet());
-
-    int created = 0, updated = 0, deactivated = 0;
-
-    for (EstateData estate : estates) {
-      if (!estate.active()) continue;
-
-      try {
-        EventType existing = byEstateId.get(estate.id());
-        if (existing == null) {
-          createEventType(estate);
-          created++;
-        } else if (updateEventTypeIfNeeded(estate, existing)) {
-          updated++;
+          updateEventTypeIfNeeded(advertisement, eventType);
         }
-      } catch (Exception e) {
-        log.error("Erro ao sincronizar empreendimento {}: {}", estate.id(), e.getMessage(), e);
-      }
+      );
+    } catch (Exception ex) {
+      log.error(ex.getMessage(), ex);
+      throw new GatewayException(EventTypeError.SYNC_FAILED, ex.getMessage());
     }
-
-    for (EventType eventType : existingEventTypes) {
-      if (!activeEstateIds.contains(eventType.getEstateId()) && !eventType.isHidden()) {
-        try {
-          deactivateEventType(eventType);
-          deactivated++;
-        } catch (Exception e) {
-          log.error("Erro ao desativar EventType {} (empreendimento {}): {}",
-            eventType.getId(), eventType.getEstateId(), e.getMessage(), e);
-        }
-      }
-    }
-
-    log.info("Sincronização concluída — criados: {}, atualizados: {}, desativados: {}",
-      created, updated, deactivated);
   }
 
-  private void createEventType(EstateData estate) {
-    EventType eventType = EventType.createNew(
-      estate.name(), estate.description(), null, null, null, estate.id());
-    EventType created = calComGateway.create(eventType, false);
-    eventTypeRepository.save(created);
-    log.info("EventType criado para empreendimento {}: calComId={}", estate.id(), created.getId());
+  private void createEventType(AdvertisementResponse advertisement) {
+    EstateResponse estate = advertisement.estate();
+
+    CreateEventTypeCommand command = new CreateEventTypeCommand(
+      estate.title(),
+      estate.description(),
+      60,
+      60,
+      advertisement.active(),
+      estate.id()
+    );
+
+    createEventTypeUseCase.execute(command);
   }
 
-  private boolean updateEventTypeIfNeeded(EstateData estate, EventType existing) {
-    boolean needsUpdate = false;
+  private void updateEventTypeIfNeeded(AdvertisementResponse advertisement, EventType existing) {
+    if (
+      advertisement.active() == existing.isHidden() &&
+      advertisement.estate().title().equals(existing.getTitle()) &&
+      advertisement.estate().description().equals(existing.getDescription())
+    ) return;
 
-    if (!Objects.equals(existing.getTitle(), estate.name())) {
-      existing.updateTitle(estate.name());
-      needsUpdate = true;
-    }
-    if (!Objects.equals(existing.getDescription(), estate.description())) {
-      existing.updateDescription(estate.description());
-      needsUpdate = true;
-    }
-    if (existing.isHidden()) {
-      existing.toggleHidden();
-      needsUpdate = true;
-    }
+    UpdateEventTypeCommand command = new UpdateEventTypeCommand(
+      existing.getId(),
+      advertisement.estate().title(),
+      advertisement.estate().description(),
+      60,
+      60
+    );
 
-    if (needsUpdate) {
-      calComGateway.update(existing, existing.isHidden());
-      eventTypeRepository.save(existing);
-      log.info("EventType atualizado para empreendimento {}: calComId={}", estate.id(), existing.getId());
-    }
-
-    return needsUpdate;
-  }
-
-  private void deactivateEventType(EventType eventType) {
-    eventType.toggleHidden();
-    calComGateway.update(eventType, eventType.isHidden());
-    eventTypeRepository.save(eventType);
-    log.info("EventType desativado: calComId={}, empreendimento={}", eventType.getId(), eventType.getEstateId());
+    changeEventTypeUseCase.execute(command);
   }
 }

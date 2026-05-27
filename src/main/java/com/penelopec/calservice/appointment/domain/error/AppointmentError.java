@@ -20,6 +20,20 @@ public enum AppointmentError implements ErrorContract {
         ErrorSeverity.ERROR
     ),
 
+    BOOKING_IN_PAST(
+        "APT-BOOKING-IN-PAST",
+        "Não é possível agendar em uma data/hora que já passou.",
+        ErrorType.DOMAIN,
+        ErrorSeverity.WARN
+    ),
+
+    BOOKING_SLOT_UNAVAILABLE(
+        "APT-BOOKING-SLOT-UNAVAILABLE",
+        "O horário selecionado não está disponível ou já possui um agendamento.",
+        ErrorType.DOMAIN,
+        ErrorSeverity.WARN
+    ),
+
     BOOKING_RESCHEDULE_FAILED(
         "APT-BOOKING-RESCHEDULE-FAILED",
         "Falha ao reagendar booking no serviço externo.",
@@ -41,9 +55,30 @@ public enum AppointmentError implements ErrorContract {
         ErrorSeverity.ERROR
     ),
 
+    SCHEDULE_FETCH_FAILED(
+        "APT-SCHEDULE-FETCH-FAILED",
+        "Falha ao buscar horários de trabalho no serviço externo.",
+        ErrorType.GATEWAY,
+        ErrorSeverity.ERROR
+    ),
+
+    SLOTS_FETCH_FAILED(
+        "APT-SLOTS-FETCH-FAILED",
+        "Falha ao buscar horários disponíveis no serviço externo.",
+        ErrorType.GATEWAY,
+        ErrorSeverity.ERROR
+    ),
+
     INVALID_STATUS_TRANSITION(
         "APT-INVALID-STATUS-TRANSITION",
         "Transição de status inválida: operação não permitida para o status '%s'.",
+        ErrorType.DOMAIN,
+        ErrorSeverity.WARN
+    ),
+
+    SCHEDULE_CONFLICT(
+        "APT-SCHEDULE-CONFLICT",
+        "Já existe um agendamento ativo para este corretor na data e horário informados.",
         ErrorType.DOMAIN,
         ErrorSeverity.WARN
     ),

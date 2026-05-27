@@ -1,6 +1,8 @@
 package com.penelopec.calservice.appointment.infrastructure.controller;
 
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.application.output.AvailableSlotsOutput;
+import com.penelopec.calservice.appointment.application.output.ScheduleOutput;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CreateAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.RescheduleAppointmentRequest;
@@ -18,9 +20,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @Tag(name = "Agendamentos", description = "Endpoints para criação, consulta, reagendamento, cancelamento e exclusão de agendamentos integrados ao Cal.com")
 @SecurityRequirement(name = "bearerAuth")
@@ -34,6 +39,7 @@ public interface AppointmentControllerSwagger {
     summary = "Criar agendamento",
     description = "Cria um novo agendamento no Cal.com e persiste o vínculo no banco de dados local. "
       + "O backend é o único responsável pela comunicação com o Cal.com — o frontend apenas envia a requisição para esta API. "
+      + "A duração do agendamento é fixa (60 minutos), calculada automaticamente a partir do startDateTime. "
       + "Após a criação, o **bookingUid** retornado identifica o agendamento no Cal.com."
   )
   @ApiResponses({
@@ -99,6 +105,26 @@ public interface AppointmentControllerSwagger {
       )
     ),
     @ApiResponse(
+      responseCode = "409",
+      description = "Conflito de horário para o corretor",
+      content = @Content(
+        mediaType = "application/json",
+        schema = @Schema(implementation = ApiErrorResponse.class),
+        examples = @ExampleObject(
+          name = "Conflito de horário",
+          value = """
+            {
+              "timestamp": "2026-03-22T10:00:00Z",
+              "status": 409,
+              "code": "APT-SCHEDULE-CONFLICT",
+              "message": "Já existe um agendamento ativo para este corretor na data e horário informados.",
+              "path": "/appointments",
+              "severity": "WARN"
+            }"""
+        )
+      )
+    ),
+    @ApiResponse(
       responseCode = "401",
       description = "Token JWT ausente ou inválido",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
@@ -124,7 +150,8 @@ public interface AppointmentControllerSwagger {
       )
     )
   })
-  ResponseEntity<AppointmentOutput> create(@Valid @RequestBody CreateAppointmentRequest request);
+  ResponseEntity<AppointmentOutput> create(@Valid @RequestBody CreateAppointmentRequest request,
+                                           Authentication authentication);
 
   // ──────────────────────────────────────────────
   // GET /appointments/{id}
@@ -193,7 +220,8 @@ public interface AppointmentControllerSwagger {
   })
   ResponseEntity<AppointmentOutput> getById(
     @Parameter(description = "ID do agendamento", example = "1", required = true)
-    @PathVariable Long id
+    @PathVariable Long id,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -258,7 +286,45 @@ public interface AppointmentControllerSwagger {
     @Parameter(description = "Data/hora inicial (ISO-8601)", example = "2026-04-10T14:00:00") @RequestParam(required = false) String startDateTime,
     @Parameter(description = "Data/hora final (ISO-8601)", example = "2026-04-10T18:00:00") @RequestParam(required = false) String endDateTime,
     @Parameter(description = "Página (base 0, padrão 0)", example = "0") @RequestParam(defaultValue = "0") Integer page,
-    @Parameter(description = "Tamanho da página (padrão 20, máximo 100)", example = "20") @RequestParam(defaultValue = "20") Integer size
+    @Parameter(description = "Tamanho da página (padrão 20, máximo 100)", example = "20") @RequestParam(defaultValue = "20") Integer size,
+    Authentication authentication
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /appointments/export
+  // ──────────────────────────────────────────────
+
+  @Operation(
+    summary = "Exportar agendamentos",
+    description = "Exporta agendamentos em formato CSV ou XLSX, com filtros opcionais por periodo e usuario."
+  )
+  @ApiResponses({
+    @ApiResponse(
+      responseCode = "200",
+      description = "Arquivo gerado com sucesso",
+      content = {
+        @Content(mediaType = "text/csv"),
+        @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      }
+    ),
+    @ApiResponse(
+      responseCode = "400",
+      description = "Formato invalido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou invalido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+  })
+  ResponseEntity<byte[]> export(
+    @Parameter(description = "ID do corretor para filtrar", example = "7")
+    @RequestParam(name = "idCorretor", required = false) Long idCorretor,
+    @Parameter(description = "Data inicial (yyyy-MM-dd)", example = "2026-04-01") @RequestParam(required = false) String periodoInicio,
+    @Parameter(description = "Data final (yyyy-MM-dd)", example = "2026-04-30") @RequestParam(required = false) String periodoFim,
+    @Parameter(description = "Formato do arquivo (csv ou xlsx)", example = "xlsx")
+    @RequestParam(required = false, defaultValue = "csv") String format
   );
 
   // ──────────────────────────────────────────────
@@ -268,6 +334,7 @@ public interface AppointmentControllerSwagger {
   @Operation(
     summary = "Reagendar agendamento",
     description = "Reagenda um agendamento existente para um novo horário. "
+      + "A duração permanece fixa em 60 minutos e o backend passa a usar o novo bookingUid retornado pelo Cal.com. "
       + "A API atualiza o booking no Cal.com e persiste a alteração localmente. "
       + "Só é permitido reagendar agendamentos com status **não terminal** (PENDING ou CONFIRMED). "
       + "O motivo do reagendamento é armazenado para auditoria."
@@ -284,14 +351,14 @@ public interface AppointmentControllerSwagger {
           value = """
             {
               "id": 1,
-              "bookingUid": "bk_abc123",
+              "bookingUid": "bk_def456",
               "eventTypeId": 100,
               "clientId": 10,
               "estateAgentId": 20,
-              "durationMinutes": 90,
+              "durationMinutes": 60,
               "status": "PENDING",
               "startDateTime": "2026-04-12T16:00:00",
-              "endDateTime": "2026-04-12T17:30:00",
+              "endDateTime": "2026-04-12T17:00:00",
               "attendeeName": "Maria Silva",
               "attendeeEmail": "maria@email.com",
               "notes": "Primeira visita",
@@ -356,7 +423,8 @@ public interface AppointmentControllerSwagger {
   ResponseEntity<AppointmentOutput> reschedule(
     @Parameter(description = "ID do agendamento a ser reagendado", example = "1", required = true)
     @PathVariable Long id,
-    @Valid @RequestBody RescheduleAppointmentRequest request
+    @Valid @RequestBody RescheduleAppointmentRequest request,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -453,7 +521,8 @@ public interface AppointmentControllerSwagger {
   ResponseEntity<AppointmentOutput> cancel(
     @Parameter(description = "ID do agendamento a ser cancelado", example = "1", required = true)
     @PathVariable Long id,
-    @RequestBody(required = false) CancelAppointmentRequest request
+    @RequestBody(required = false) CancelAppointmentRequest request,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -513,7 +582,8 @@ public interface AppointmentControllerSwagger {
   })
   ResponseEntity<AppointmentOutput> confirm(
     @Parameter(description = "ID do agendamento a ser confirmado", example = "1", required = true)
-    @PathVariable Long id
+    @PathVariable Long id,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -573,7 +643,8 @@ public interface AppointmentControllerSwagger {
   })
   ResponseEntity<AppointmentOutput> conclude(
     @Parameter(description = "ID do agendamento a ser concluído", example = "1", required = true)
-    @PathVariable Long id
+    @PathVariable Long id,
+    Authentication authentication
   );
 
   // ──────────────────────────────────────────────
@@ -583,6 +654,7 @@ public interface AppointmentControllerSwagger {
   @Operation(
     summary = "Excluir agendamento",
     description = "Exclui um agendamento do banco de dados local. "
+      + "A operação é restrita a usuários com perfil ADMINISTRADOR. "
       + "Se houver um **bookingUid** vinculado, também cancela o booking no Cal.com."
   )
   @ApiResponses({
@@ -598,6 +670,11 @@ public interface AppointmentControllerSwagger {
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
     ),
     @ApiResponse(
+      responseCode = "403",
+      description = "Usuário sem permissão para excluir agendamento",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
       responseCode = "502",
       description = "Falha na comunicação com o Cal.com",
       content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
@@ -606,5 +683,95 @@ public interface AppointmentControllerSwagger {
   ResponseEntity<Void> delete(
     @Parameter(description = "ID do agendamento a ser excluído", example = "1", required = true)
     @PathVariable Long id
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /appointments/schedules
+  // ──────────────────────────────────────────────
+
+  @Operation(
+    summary = "Buscar horários de trabalho (schedules)",
+    description = "Retorna todos os schedules (horários de trabalho) configurados no Cal.com. "
+      + "Cada schedule contém as regras de disponibilidade por dia da semana e possíveis overrides por data específica."
+  )
+  @ApiResponses({
+    @ApiResponse(
+      responseCode = "200",
+      description = "Schedules retornados com sucesso",
+      content = @Content(
+        mediaType = "application/json",
+        examples = @ExampleObject(
+          name = "Schedules",
+          value = """
+            [
+              {
+                "id": 254,
+                "name": "Horário comercial",
+                "timeZone": "America/Sao_Paulo",
+                "availability": [
+                  { "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "startTime": "09:00", "endTime": "18:00" }
+                ],
+                "isDefault": true,
+                "overrides": []
+              }
+            ]"""
+        )
+      )
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou inválido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+  })
+  ResponseEntity<List<ScheduleOutput>> getSchedules();
+
+  // ──────────────────────────────────────────────
+  // GET /appointments/slots
+  // ──────────────────────────────────────────────
+
+  @Operation(
+    summary = "Buscar horários disponíveis (slots)",
+    description = "Retorna os horários disponíveis para agendamento em um tipo de evento, dentro de um período. "
+      + "Os horários retornados já consideram o schedule configurado no Cal.com e agendamentos existentes."
+  )
+  @ApiResponses({
+    @ApiResponse(
+      responseCode = "200",
+      description = "Slots disponíveis retornados com sucesso",
+      content = @Content(
+        mediaType = "application/json",
+        examples = @ExampleObject(
+          name = "Slots disponíveis",
+          value = """
+            {
+              "slots": {
+                "2026-04-28": ["2026-04-28T09:00:00-03:00", "2026-04-28T10:00:00-03:00", "2026-04-28T14:00:00-03:00"],
+                "2026-04-29": ["2026-04-29T09:00:00-03:00", "2026-04-29T11:00:00-03:00"]
+              }
+            }"""
+        )
+      )
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou inválido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "502",
+      description = "Falha na comunicação com o Cal.com",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+  })
+  ResponseEntity<AvailableSlotsOutput> getAvailableSlots(
+    @Parameter(description = "ID do tipo de evento", example = "100", required = true) @RequestParam Long eventTypeId,
+    @Parameter(description = "Data início (ISO-8601, ex: 2026-04-28)", example = "2026-04-28", required = true) @RequestParam String start,
+    @Parameter(description = "Data fim (ISO-8601, ex: 2026-04-30)", example = "2026-04-30", required = true) @RequestParam String end
   );
 }

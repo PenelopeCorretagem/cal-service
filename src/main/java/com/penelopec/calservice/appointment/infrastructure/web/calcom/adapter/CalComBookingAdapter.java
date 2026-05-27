@@ -2,6 +2,7 @@ package com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter;
 
 import com.penelopec.calservice.appointment.domain.error.AppointmentError;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
+import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.shared.error.core.GatewayException;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.dto.CalComBookingRequest;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.dto.CalComBookingResponse;
@@ -41,10 +42,8 @@ public class CalComBookingAdapter implements CalComBookingGateway {
     CalComBookingRequest body = CalComBookingRequest.of(
       request.eventTypeId(),
       request.startTime(),
-      request.endTime(),
       request.attendeeName(),
-      request.attendeeEmail(),
-      request.notes()
+      request.attendeeEmail()
     );
 
     try {
@@ -61,6 +60,7 @@ public class CalComBookingAdapter implements CalComBookingGateway {
       log.info("Booking criado no Cal.com: uid={}", response.uid());
       return toResult(response);
     } catch (RemoteServiceException e) {
+      throwIfKnownCalComError(e);
       throw new GatewayException(AppointmentError.BOOKING_CREATE_FAILED, e);
     }
   }
@@ -70,12 +70,12 @@ public class CalComBookingAdapter implements CalComBookingGateway {
                                          OffsetDateTime newEndTime, String reason) {
     log.info("Reagendando booking uid={} no Cal.com", bookingUid);
 
-    CalComRescheduleRequest body = new CalComRescheduleRequest(newStartTime, newEndTime, reason);
+    CalComRescheduleRequest body = new CalComRescheduleRequest(newStartTime);
 
     try {
       CalComBookingResponse response = Optional.ofNullable(
           restExecutor.executeOrNull(SYSTEM, () ->
-            restClient.patch()
+            restClient.post()
               .uri("/v2/bookings/{uid}/reschedule", bookingUid)
               .body(body)
               .retrieve()
@@ -86,6 +86,7 @@ public class CalComBookingAdapter implements CalComBookingGateway {
       log.info("Booking {} reagendado no Cal.com", bookingUid);
       return toResult(response);
     } catch (RemoteServiceException e) {
+      throwIfKnownCalComError(e);
       throw new GatewayException(AppointmentError.BOOKING_RESCHEDULE_FAILED, e);
     }
   }
@@ -94,7 +95,7 @@ public class CalComBookingAdapter implements CalComBookingGateway {
   public BookingResult cancelBooking(String bookingUid, String reason) {
     log.info("Cancelando booking uid={} no Cal.com", bookingUid);
 
-    CalComCancelRequest body = new CalComCancelRequest(reason, false);
+    CalComCancelRequest body = CalComCancelRequest.of(reason);
 
     try {
       CalComBookingResponse response = Optional.ofNullable(
@@ -131,6 +132,18 @@ public class CalComBookingAdapter implements CalComBookingGateway {
       return toResult(response);
     } catch (RemoteServiceException e) {
       throw new GatewayException(AppointmentError.BOOKING_FETCH_FAILED, e);
+    }
+  }
+
+  private void throwIfKnownCalComError(RemoteServiceException e) {
+    String msg = e.getMessage();
+    if (msg == null) return;
+
+    if (msg.contains("meeting in the past")) {
+      throw new DomainException(AppointmentError.BOOKING_IN_PAST);
+    }
+    if (msg.contains("already has booking at this time or is not available")) {
+      throw new DomainException(AppointmentError.BOOKING_SLOT_UNAVAILABLE);
     }
   }
 

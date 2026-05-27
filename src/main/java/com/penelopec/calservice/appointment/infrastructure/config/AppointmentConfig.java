@@ -7,8 +7,10 @@ import com.penelopec.calservice.appointment.application.validator.CancelAppointm
 import com.penelopec.calservice.appointment.application.validator.ListAppointmentsQueryValidator;
 import com.penelopec.calservice.appointment.application.validator.RescheduleAppointmentCommandValidator;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
+import com.penelopec.calservice.appointment.domain.gateway.CalComScheduleGateway;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter.CalComBookingAdapter;
+import com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter.CalComScheduleAdapter;
 import com.penelopec.calservice.eventtype.infrastructure.config.properties.CalcomProperties;
 import com.penelopec.calservice.shared.http.config.RestClientBuilderFactory;
 import com.penelopec.calservice.shared.http.executor.RestExecutor;
@@ -34,6 +36,21 @@ public class AppointmentConfig {
   }
 
   @Bean
+  public CalComScheduleGateway calComScheduleGateway(RestClient calBookingRestClient, RestExecutor restExecutor) {
+    return new CalComScheduleAdapter(calBookingRestClient, restExecutor);
+  }
+
+  @Bean
+  public GetSchedulesUseCase getSchedulesUseCase(CalComScheduleGateway gateway) {
+    return new GetSchedulesService(gateway);
+  }
+
+  @Bean
+  public GetAvailableSlotsUseCase getAvailableSlotsUseCase(CalComScheduleGateway gateway) {
+    return new GetAvailableSlotsService(gateway);
+  }
+
+  @Bean
   public CreateAppointmentUseCase createAppointmentUseCase(CalComBookingGateway gateway,
                                                            AppointmentRepository repository) {
     return new CreateAppointmentService(gateway, repository, new AppointmentCommandValidator());
@@ -47,6 +64,11 @@ public class AppointmentConfig {
   @Bean
   public ListAppointmentsUseCase listAppointmentsUseCase(AppointmentRepository repository) {
     return new ListAppointmentsService(repository, new ListAppointmentsQueryValidator());
+  }
+
+  @Bean
+  public ExportAppointmentsUseCase exportAppointmentsUseCase(AppointmentRepository repository) {
+    return new ExportAppointmentsService(repository);
   }
 
   @Bean

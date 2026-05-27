@@ -17,10 +17,15 @@ public class AppointmentHttpStatusRegistrar {
   public AppointmentHttpStatusRegistrar() {
     ErrorHttpStatusMapping.register(AppointmentError.NOT_FOUND.code(),                 HttpStatus.NOT_FOUND);
     ErrorHttpStatusMapping.register(AppointmentError.BOOKING_CREATE_FAILED.code(),     HttpStatus.BAD_GATEWAY);
+    ErrorHttpStatusMapping.register(AppointmentError.BOOKING_IN_PAST.code(),           HttpStatus.valueOf(422));
+    ErrorHttpStatusMapping.register(AppointmentError.BOOKING_SLOT_UNAVAILABLE.code(),  HttpStatus.CONFLICT);
     ErrorHttpStatusMapping.register(AppointmentError.BOOKING_RESCHEDULE_FAILED.code(), HttpStatus.BAD_GATEWAY);
     ErrorHttpStatusMapping.register(AppointmentError.BOOKING_CANCEL_FAILED.code(),     HttpStatus.BAD_GATEWAY);
     ErrorHttpStatusMapping.register(AppointmentError.BOOKING_FETCH_FAILED.code(),      HttpStatus.BAD_GATEWAY);
+    ErrorHttpStatusMapping.register(AppointmentError.SCHEDULE_FETCH_FAILED.code(),     HttpStatus.BAD_GATEWAY);
+    ErrorHttpStatusMapping.register(AppointmentError.SLOTS_FETCH_FAILED.code(),        HttpStatus.BAD_GATEWAY);
     ErrorHttpStatusMapping.register(AppointmentError.INVALID_STATUS_TRANSITION.code(), HttpStatus.CONFLICT);
+    ErrorHttpStatusMapping.register(AppointmentError.SCHEDULE_CONFLICT.code(),         HttpStatus.CONFLICT);
     ErrorHttpStatusMapping.register(AppointmentError.INVALID_DATES.code(),             HttpStatus.valueOf(422));
     ErrorHttpStatusMapping.register(AppointmentError.MISSING_DATETIMES.code(),         HttpStatus.valueOf(422));
     ErrorHttpStatusMapping.register(AppointmentError.MISSING_BOOKING_UID.code(),       HttpStatus.CONFLICT);

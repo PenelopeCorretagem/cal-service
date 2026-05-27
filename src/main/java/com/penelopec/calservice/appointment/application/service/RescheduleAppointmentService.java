@@ -14,9 +14,13 @@ import com.penelopec.calservice.appointment.domain.repository.AppointmentReposit
 import com.penelopec.calservice.shared.validation.CommandValidator;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 public class RescheduleAppointmentService implements ChangeAppointmentUseCase {
+
+  private static final ZoneId BRAZIL_TIME_ZONE = ZoneId.of("America/Sao_Paulo");
+  private static final int DEFAULT_APPOINTMENT_DURATION_MINUTES = 60;
 
   private final CalComBookingGateway bookingGateway;
   private final AppointmentRepository repository;
@@ -42,19 +46,40 @@ public class RescheduleAppointmentService implements ChangeAppointmentUseCase {
     }
 
     LocalDateTime newStart = AppointmentDateTimeParser.parseRequired(command.startDateTime(), "startDateTime");
-    LocalDateTime newEnd = AppointmentDateTimeParser.parseRequired(command.endDateTime(), "endDateTime");
 
-    appointment.reschedule(newStart, newEnd, command.reason());
+    if (appointment.getEstateAgentId() != null
+      && repository.existsActiveByEstateAgentAndStartDateTimeExcludingId(
+        appointment.getEstateAgentId(),
+        newStart,
+        appointment.getId())) {
+      throw new DomainException(AppointmentError.SCHEDULE_CONFLICT);
+    }
 
-    bookingGateway.rescheduleBooking(
+    var bookingResult = bookingGateway.rescheduleBooking(
       appointment.getBookingUid(),
-      newStart.atOffset(ZoneOffset.UTC),
-      newEnd.atOffset(ZoneOffset.UTC),
+      newStart.atZone(BRAZIL_TIME_ZONE).toOffsetDateTime(),
+      null,
       command.reason()
     );
+
+    LocalDateTime actualEnd = resolveEndDateTime(newStart, bookingResult.endTime());
+    appointment.reschedule(newStart, actualEnd, command.reason());
+
+    if (bookingResult.uid() != null
+      && !bookingResult.uid().isBlank()) {
+      appointment.assignBookingUid(bookingResult.uid());
+    }
 
     Appointment saved = repository.save(appointment);
 
     return AppointmentOutputMapper.toOutput(saved);
+  }
+
+  private LocalDateTime resolveEndDateTime(LocalDateTime startDateTime, OffsetDateTime calComEndDateTime) {
+    if (calComEndDateTime == null) {
+      return startDateTime.plusMinutes(DEFAULT_APPOINTMENT_DURATION_MINUTES);
+    }
+
+    return calComEndDateTime.atZoneSameInstant(BRAZIL_TIME_ZONE).toLocalDateTime();
   }
 }

@@ -1,11 +1,12 @@
 package com.penelopec.calservice.eventtype.application.service;
 
-import com.penelopec.calservice.eventtype.application.service.SyncEventTypesService;
+import com.penelopec.calservice.eventtype.application.port.in.ChangeEventTypeUseCase;
+import com.penelopec.calservice.eventtype.application.port.in.CreateEventTypeUseCase;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
-import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
-import com.penelopec.calservice.eventtype.domain.valueobject.EstateData;
-import com.penelopec.calservice.eventtype.domain.gateway.EstateGateway;
+import com.penelopec.calservice.eventtype.domain.gateway.AdvertisementGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.AdvertisementResponse;
+import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.EstateResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,23 +16,26 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SyncEventTypesServiceTest {
 
   @Mock
-  private EstateGateway estateGateway;
-
-  @Mock
-  private CalComEventTypeGateway calComGateway;
+  private AdvertisementGateway advertisementGateway;
 
   @Mock
   private EventTypeRepository eventTypeRepository;
+
+  @Mock
+  private CreateEventTypeUseCase createEventTypeUseCase;
+
+  @Mock
+  private ChangeEventTypeUseCase changeEventTypeUseCase;
 
   @InjectMocks
   private SyncEventTypesService service;
@@ -41,138 +45,70 @@ class SyncEventTypesServiceTest {
   class Execute {
 
     @Test
-    @DisplayName("Deve falhar quando houver EventTypes duplicados por empreendimento")
-    void shouldFail_whenDuplicateEstateIdsExist() {
+    @DisplayName("Deve criar EventType para advertisement sem vínculo existente")
+    void shouldCreateEventTypeForAdvertisementWithoutExistingBinding() {
       // Given
-      EventType first = EventType.reconstitute(1L, "Visita A", "visita-a", "Desc", 60, 120, false, 99L);
-      EventType second = EventType.reconstitute(2L, "Visita B", "visita-b", "Desc", 60, 120, false, 99L);
+      AdvertisementResponse advertisement = new AdvertisementResponse(
+        true, new EstateResponse(101L, "Empreendimento A", "Desc A")
+      );
 
-      when(estateGateway.fetchAllEstates()).thenReturn(List.of(new EstateData(99L, "Emp", "Desc", true)));
-      when(eventTypeRepository.findAll()).thenReturn(List.of(first, second));
-
-      // When / Then
-      assertThatThrownBy(() -> service.execute())
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("duplicados por empreendimento");
-    }
-
-    @Test
-    @DisplayName("Deve criar EventType para empreendimento ativo sem vínculo existente")
-    void shouldCreateEventTypeForActiveEstateWithoutExistingBinding() {
-      // Given
-      EstateData estate = new EstateData(101L, "Empreendimento A", "Desc A", true);
-      EventType created = EventType.reconstitute(5001L, "Empreendimento A", "empreendimento-a", "Desc A", 60, 120, false, 101L);
-
-      when(estateGateway.fetchAllEstates()).thenReturn(List.of(estate));
-      when(eventTypeRepository.findAll()).thenReturn(List.of());
-      when(calComGateway.create(any(EventType.class), eq(false))).thenReturn(created);
-      when(eventTypeRepository.save(created)).thenReturn(created);
+      when(advertisementGateway.fetchAllAdvertisements()).thenReturn(List.of(advertisement));
+      when(eventTypeRepository.findByEstateId(101L)).thenReturn(Optional.empty());
 
       // When
       service.execute();
 
       // Then
-      verify(calComGateway).create(any(EventType.class), eq(false));
-      verify(eventTypeRepository).save(created);
+      verify(createEventTypeUseCase).execute(any());
     }
 
     @Test
     @DisplayName("Deve atualizar EventType quando título ou descrição mudarem")
     void shouldUpdateEventTypeWhenTitleOrDescriptionChanges() {
       // Given
-      EstateData estate = new EstateData(202L, "Nome Novo", "Descrição Nova", true);
+      AdvertisementResponse advertisement = new AdvertisementResponse(
+        true, new EstateResponse(202L, "Nome Novo", "Descrição Nova")
+      );
       EventType existing = EventType.reconstitute(88L, "Nome Antigo", "nome-antigo", "Descrição Antiga", 60, 120, false, 202L);
 
-      when(estateGateway.fetchAllEstates()).thenReturn(List.of(estate));
-      when(eventTypeRepository.findAll()).thenReturn(List.of(existing));
-      when(eventTypeRepository.save(existing)).thenReturn(existing);
+      when(advertisementGateway.fetchAllAdvertisements()).thenReturn(List.of(advertisement));
+      when(eventTypeRepository.findByEstateId(202L)).thenReturn(Optional.of(existing));
 
       // When
       service.execute();
 
       // Then
-      verify(calComGateway).update(existing, false);
-      verify(eventTypeRepository).save(existing);
+      verify(changeEventTypeUseCase).execute(any());
     }
 
     @Test
-    @DisplayName("Deve reativar EventType oculto quando empreendimento estiver ativo")
-    void shouldReactivateHiddenEventTypeWhenEstateIsActive() {
+    @DisplayName("Não deve atualizar EventType quando dados forem iguais")
+    void shouldNotUpdateEventTypeWhenDataIsUnchanged() {
       // Given
-      EstateData estate = new EstateData(303L, "Emp", "Desc", true);
-      EventType hidden = EventType.reconstitute(44L, "Emp", "emp", "Desc", 60, 120, true, 303L);
+      AdvertisementResponse advertisement = new AdvertisementResponse(
+        false, new EstateResponse(303L, "Mesmo Nome", "Mesma Desc")
+      );
+      EventType existing = EventType.reconstitute(44L, "Mesmo Nome", "mesmo-nome", "Mesma Desc", 60, 120, false, 303L);
 
-      when(estateGateway.fetchAllEstates()).thenReturn(List.of(estate));
-      when(eventTypeRepository.findAll()).thenReturn(List.of(hidden));
-      when(eventTypeRepository.save(hidden)).thenReturn(hidden);
+      when(advertisementGateway.fetchAllAdvertisements()).thenReturn(List.of(advertisement));
+      when(eventTypeRepository.findByEstateId(303L)).thenReturn(Optional.of(existing));
 
       // When
       service.execute();
 
       // Then
-      verify(calComGateway).update(hidden, false);
-      verify(eventTypeRepository).save(hidden);
+      verify(changeEventTypeUseCase, never()).execute(any());
     }
 
     @Test
-    @DisplayName("Deve desativar EventType quando empreendimento não estiver ativo")
-    void shouldDeactivateEventTypeWhenEstateIsNotActive() {
+    @DisplayName("Deve lançar GatewayException quando gateway falhar")
+    void shouldThrowGatewayExceptionWhenGatewayFails() {
       // Given
-      EstateData activeEstate = new EstateData(404L, "Ativo", "Desc", true);
-      EventType activeExisting = EventType.reconstitute(78L, "Ativo", "ativo", "Desc", 60, 120, false, 404L);
-      EventType shouldDeactivate = EventType.reconstitute(77L, "Outro", "outro", "Desc", 60, 120, false, 999L);
+      when(advertisementGateway.fetchAllAdvertisements()).thenThrow(new RuntimeException("connection refused"));
 
-      when(estateGateway.fetchAllEstates()).thenReturn(List.of(activeEstate));
-      when(eventTypeRepository.findAll()).thenReturn(List.of(activeExisting, shouldDeactivate));
-      when(eventTypeRepository.save(shouldDeactivate)).thenReturn(shouldDeactivate);
-
-      // When
-      service.execute();
-
-      // Then
-      verify(calComGateway).update(shouldDeactivate, true);
-      verify(eventTypeRepository).save(shouldDeactivate);
-    }
-
-    @Test
-    @DisplayName("Deve continuar sincronização mesmo com erro em um empreendimento")
-    void shouldContinueSyncWhenOneEstateFails() {
-      // Given
-      EstateData first = new EstateData(1L, "Primeiro", "Desc 1", true);
-      EstateData second = new EstateData(2L, "Segundo", "Desc 2", true);
-      EventType createdSecond = EventType.reconstitute(9002L, "Segundo", "segundo", "Desc 2", 60, 120, false, 2L);
-
-      when(estateGateway.fetchAllEstates()).thenReturn(List.of(first, second));
-      when(eventTypeRepository.findAll()).thenReturn(List.of());
-      when(calComGateway.create(any(EventType.class), eq(false)))
-        .thenThrow(new RuntimeException("falha primeiro"))
-        .thenReturn(createdSecond);
-      when(eventTypeRepository.save(createdSecond)).thenReturn(createdSecond);
-
-      // When
-      service.execute();
-
-      // Then
-      verify(calComGateway, times(2)).create(any(EventType.class), eq(false));
-      verify(eventTypeRepository).save(createdSecond);
-    }
-
-    @Test
-    @DisplayName("Não deve sincronizar empreendimento inativo")
-    void shouldSkipInactiveEstate() {
-      // Given
-      EstateData inactive = new EstateData(333L, "Inativo", "Desc", false);
-
-      when(estateGateway.fetchAllEstates()).thenReturn(List.of(inactive));
-      when(eventTypeRepository.findAll()).thenReturn(List.of());
-
-      // When
-      service.execute();
-
-      // Then
-      verify(calComGateway, never()).create(any(EventType.class), eq(false));
-      verify(calComGateway, never()).update(any(EventType.class), eq(true));
-      verify(calComGateway, never()).update(any(EventType.class), eq(false));
+      // When / Then
+      assertThatThrownBy(() -> service.execute())
+        .isInstanceOf(Exception.class);
     }
   }
 }

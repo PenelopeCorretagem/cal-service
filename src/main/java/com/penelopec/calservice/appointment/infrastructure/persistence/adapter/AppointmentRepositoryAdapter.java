@@ -25,6 +25,9 @@ import java.util.Optional;
 @Component
 public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
+  private static final java.util.Set<String> TERMINAL_STATUSES =
+    java.util.Set.of(Status.CANCELLED.name(), Status.CONCLUDED.name());
+
   private final AppointmentJpaRepository jpaRepository;
 
   public AppointmentRepositoryAdapter(AppointmentJpaRepository jpaRepository) {
@@ -44,6 +47,27 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
   }
 
   @Override
+  public boolean existsActiveByEstateAgentAndStartDateTime(Long estateAgentId, LocalDateTime startDateTime) {
+    return jpaRepository.existsByEstateAgentIdAndStartDateTimeAndStatusNotIn(
+      estateAgentId,
+      startDateTime,
+      TERMINAL_STATUSES
+    );
+  }
+
+  @Override
+  public boolean existsActiveByEstateAgentAndStartDateTimeExcludingId(Long estateAgentId,
+                                                                       LocalDateTime startDateTime,
+                                                                       Long excludedId) {
+    return jpaRepository.existsByEstateAgentIdAndStartDateTimeAndStatusNotInAndIdNot(
+      estateAgentId,
+      startDateTime,
+      TERMINAL_STATUSES,
+      excludedId
+    );
+  }
+
+  @Override
   public PageResult<Appointment> findByFilters(Long clientId, Long estateAgentId, Long estateId,
                                                Status status, LocalDateTime startDate,
                                                LocalDateTime endDate, int page, int size) {
@@ -59,6 +83,29 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
     return new PageResult<>(content, jpaPage.getNumber(), jpaPage.getSize(),
       jpaPage.getTotalElements(), jpaPage.getTotalPages());
+  }
+
+  @Override
+  public List<Appointment> findForExport(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+    Specification<AppointmentJpaEntity> spec = (root, query, cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+
+      if (userId != null) {
+        predicates.add(cb.equal(root.get("estateAgentId"), userId));
+      }
+      if (startDate != null) {
+        predicates.add(cb.greaterThanOrEqualTo(root.get("startDateTime"), startDate));
+      }
+      if (endDate != null) {
+        predicates.add(cb.lessThanOrEqualTo(root.get("endDateTime"), endDate));
+      }
+
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
+
+    return jpaRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "startDateTime")).stream()
+      .map(AppointmentJpaMapper::toDomain)
+      .toList();
   }
 
   @Override
