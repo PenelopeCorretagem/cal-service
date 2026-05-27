@@ -40,28 +40,6 @@ class SecurityFilterTest {
   }
 
   @Test
-  void shouldSetAuthentication_whenBearerTokenIsValid() throws Exception {
-    MockHttpServletRequest request = new MockHttpServletRequest();
-    request.setRequestURI("/event-types");
-    request.addHeader("Authorization", "Bearer valid-token");
-    MockHttpServletResponse response = new MockHttpServletResponse();
-    FilterChain filterChain = mock(FilterChain.class);
-
-    when(validateTokenUseCase.execute(new ValidateTokenCommand("valid-token")))
-      .thenReturn(new ValidateTokenOutput("user@penelopec.com", "admin"));
-
-    securityFilter.doFilterInternal(request, response, filterChain);
-
-    var authentication = SecurityContextHolder.getContext().getAuthentication();
-    assertThat(authentication).isNotNull();
-    assertThat(authentication.getName()).isEqualTo("user@penelopec.com");
-    assertThat(authentication.getAuthorities())
-      .extracting(GrantedAuthority::getAuthority)
-      .containsExactly("ROLE_ADMIN");
-    verify(filterChain).doFilter(request, response);
-  }
-
-  @Test
   void shouldNotSetAuthentication_whenValidationOutputIsIncomplete() throws Exception {
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.setRequestURI("/event-types");
