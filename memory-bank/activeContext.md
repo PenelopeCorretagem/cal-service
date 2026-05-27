@@ -1,9 +1,10 @@
 # Active Context — cal-service
 
-**Última atualização**: 2026-04-20
+**Última atualização**: 2026-05-20
 
 ## Foco Atual
 
+- **TASK020 (Completed)**: estrutura de CI/CD do `penelope-api-rest` replicada em `authentication-service` e `cal-service`, com workflow padrao (`build`, `test`, `docker`) e tag Docker dedicada por servico.
 - **TASK019 (Completed)**: consolidação de erros por contexto (`AppointmentError`/`EventTypeError`) e fechamento dos comentários pendentes de review (validacao formatada, whitelist de auth explícita, retry AMQP no container, testes alinhados).
 - **TASK018 (Completed)**: paginação unificada via `shared.pagination.Page`, com migração do fluxo de `ListAppointments` e alinhamento de contratos REST/OpenAPI.
 - **TASK017 (Completed)**: `GET /event-types` migrado para resposta paginada com `Page<T>` na camada application e contrato OpenAPI atualizado.
@@ -14,7 +15,7 @@
 - **TASK012 (Completed)**: Hardening de infraestrutura REST finalizado com exemplos/respostas OpenAPI alinhados ao contrato `ApiErrorResponse`.
 - **TASK013 (Completed)**: Suíte de validators criada e contrato HTTP do `GlobalExceptionHandler` finalizado com cenário 405.
 
-**Próximo passo imediato**: retomar backlog técnico de média prioridade (CI/CD e estratégia de migrations).
+**Próximo passo imediato**: retomar backlog tecnico de media prioridade com foco em estrategia de migrations.
 
 ## O Que Foi Feito Recentemente
 

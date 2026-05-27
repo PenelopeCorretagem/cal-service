@@ -10,6 +10,7 @@ _(nenhuma tarefa pendente)_
 
 ## Completed
 
+- [TASK020] Replicar estrutura de CI/CD nos servicos — pipeline de referencia do `penelope-api-rest` espelhado em `authentication-service` e `cal-service`, com imagens Docker por servico - Concluido em 2026-05-20
 - [TASK019] Consolidar errors por contexto e corrigir review comments — enums de validacao consolidados em `AppointmentError`/`EventTypeError`, com fixes de seguranca/retry/validacao e suite verde (171/171) - Concluído em 2026-04-20
 - [TASK018] Centralizar Page em shared e aplicar em ListAppointments — paginação unificada com `shared.pagination.Page` em `eventtype` e `appointment` - Concluído em 2026-04-19
 - [TASK017] Paginar listagem de event types — `GET /event-types` atualizado para paginação com `Page<T>` na camada application - Concluído em 2026-04-19
