@@ -5,8 +5,8 @@ import com.penelopec.calservice.shared.error.core.GatewayException;
 import com.penelopec.calservice.shared.http.exception.RemoteNotFoundException;
 import com.penelopec.calservice.shared.http.exception.RemoteServiceException;
 import com.penelopec.calservice.shared.http.executor.RestExecutor;
-import com.penelopec.calservice.user.application.output.UserSummaryOutput;
 import com.penelopec.calservice.user.domain.gateway.UserGateway;
+import com.penelopec.calservice.user.domain.valueobject.UserSummary;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.client.RestClient;
@@ -26,7 +26,7 @@ public class UserServiceAdapter implements UserGateway {
   }
 
   @Override
-  public Optional<UserSummaryOutput> findById(Long userId) {
+  public Optional<UserSummary> findById(Long userId) {
     if (userId == null) {
       return Optional.empty();
     }
@@ -40,7 +40,7 @@ public class UserServiceAdapter implements UserGateway {
           if (authorization != null) {
             request = request.header("Authorization", authorization);
           }
-          return request.retrieve().body(UserSummaryOutput.class);
+          return request.retrieve().body(UserSummary.class);
         })
       );
     } catch (RemoteNotFoundException e) {

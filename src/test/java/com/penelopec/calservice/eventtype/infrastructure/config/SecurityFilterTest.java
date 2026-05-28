@@ -54,7 +54,7 @@ class SecurityFilterTest {
 
     var authentication = SecurityContextHolder.getContext().getAuthentication();
     assertThat(authentication).isNotNull();
-    assertThat(authentication.getName()).isEqualTo("user@penelopec.com");
+    assertThat(authentication.getName()).isEqualTo("1");
     assertThat(authentication.getAuthorities())
       .extracting(GrantedAuthority::getAuthority)
       .containsExactly("ROLE_ADMIN");

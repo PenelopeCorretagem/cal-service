@@ -55,14 +55,7 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
       command.notes()
     ));
 
-      LocalDateTime actualEnd = null;
-
-    if(result.endTime() != null){
-        actualEnd = result.endTime().atZoneSameInstant(BRAZIL_TIME_ZONE).toLocalDateTime();
-    }else{
-        // If the end time is not provided by the booking gateway, we can set a default duration (e.g., 30 minutes)
-        actualEnd = start.plusMinutes(30);
-    }
+    LocalDateTime actualEnd = resolveEndDateTime(start, result.endTime());
 
     Appointment appointment = Appointment.createNew(
       command.eventTypeId(),

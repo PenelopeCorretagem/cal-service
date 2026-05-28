@@ -31,8 +31,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @RestController
 @RequestMapping("/appointments")
@@ -185,7 +186,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @PostMapping("/{id}/confirm")
     public ResponseEntity<AppointmentOutput> confirm(@PathVariable Long id, Authentication authentication) {
         AppointmentOutput currentAppointment = getUseCase.execute(id);
-        assertCanConfirmOrConclude(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
+        assertCanConfirmOrConclude(authentication, currentAppointment.estateAgentId());
         AppointmentOutput output = confirmUseCase.execute(new ConfirmAppointmentCommand(id));
         return ResponseEntity.ok(output);
     }
@@ -194,7 +195,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @PostMapping("/{id}/conclude")
     public ResponseEntity<AppointmentOutput> conclude(@PathVariable Long id, Authentication authentication) {
         AppointmentOutput currentAppointment = getUseCase.execute(id);
-        assertCanConfirmOrConclude(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
+        assertCanConfirmOrConclude(authentication, currentAppointment.estateAgentId());
         AppointmentOutput output = concludeUseCase.execute(new ConcludeAppointmentCommand(id));
         return ResponseEntity.ok(output);
     }
@@ -237,7 +238,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         AppointmentOutput currentAppointment = getUseCase.execute(id);
-        assertCanDeleteAppointment(authentication, currentAppointment.clientId(), currentAppointment.estateAgentId());
+        assertCanDeleteAppointment(authentication, currentAppointment.estateAgentId());
         deleteUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
@@ -283,11 +284,11 @@ public class AppointmentController implements AppointmentControllerSwagger {
 
         Long currentUserId = currentUserId(authentication);
         if (isClient(authentication) && !currentUserId.equals(clientId)) {
-            throw new ResponseStatusException(FORBIDDEN, "Clientes só podem visualizar seus próprios agendamentos");
+            throwNotFound();
         }
 
         if (isBroker(authentication) && !currentUserId.equals(estateAgentId)) {
-            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem operar seus próprios agendamentos");
+            throwNotFound();
         }
     }
 
@@ -298,36 +299,40 @@ public class AppointmentController implements AppointmentControllerSwagger {
 
         Long currentUserId = currentUserId(authentication);
         if (isClient(authentication) && !currentUserId.equals(clientId)) {
-            throw new ResponseStatusException(FORBIDDEN, "Clientes só podem alterar seus próprios agendamentos");
+            throwNotFound();
         }
 
         if (isBroker(authentication) && !currentUserId.equals(estateAgentId)) {
-            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem operar seus próprios agendamentos");
+            throwNotFound();
         }
     }
 
-    private void assertCanDeleteAppointment(Authentication authentication, Long clientId, Long estateAgentId) {
+    private void assertCanDeleteAppointment(Authentication authentication, Long estateAgentId) {
         if (isAdmin(authentication)) {
             return;
         }
 
-        Long currentUserId = currentUserId(authentication);
         if (isClient(authentication)) {
-            throw new ResponseStatusException(FORBIDDEN, "Clientes não podem excluir agendamentos");
+            throwNotFound();
         }
 
-        if (isBroker(authentication) && !currentUserId.equals(estateAgentId)) {
-            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem excluir seus próprios agendamentos");
+        if (!isBroker(authentication)) {
+            throwNotFound();
+        }
+
+        Long currentUserId = currentUserId(authentication);
+        if (!currentUserId.equals(estateAgentId)) {
+            throwNotFound();
         }
     }
 
-    private void assertCanConfirmOrConclude(Authentication authentication, Long clientId, Long estateAgentId) {
+    private void assertCanConfirmOrConclude(Authentication authentication, Long estateAgentId) {
         if (isAdmin(authentication)) {
             return;
         }
 
         if (!isBroker(authentication)) {
-            throw new ResponseStatusException(FORBIDDEN, "Somente corretores e administradores podem confirmar ou concluir agendamentos");
+            throwNotFound();
         }
 
         assertBrokerOwnAppointment(authentication, estateAgentId);
@@ -335,8 +340,12 @@ public class AppointmentController implements AppointmentControllerSwagger {
 
     private void assertBrokerOwnAppointment(Authentication authentication, Long estateAgentId) {
         if (isBroker(authentication) && !currentUserId(authentication).equals(estateAgentId)) {
-            throw new ResponseStatusException(FORBIDDEN, "Corretores só podem operar seus próprios agendamentos");
+            throwNotFound();
         }
+    }
+
+    private void throwNotFound() {
+        throw new ResponseStatusException(NOT_FOUND, "Agendamento não encontrado");
     }
 
     private boolean isBroker(Authentication authentication) {

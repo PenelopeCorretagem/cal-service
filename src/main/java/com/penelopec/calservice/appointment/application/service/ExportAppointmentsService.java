@@ -8,8 +8,8 @@ import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
-import com.penelopec.calservice.user.application.output.UserSummaryOutput;
 import com.penelopec.calservice.user.domain.gateway.UserGateway;
+import com.penelopec.calservice.user.domain.valueobject.UserSummary;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -94,7 +94,7 @@ public class ExportAppointmentsService implements ExportAppointmentsUseCase {
 
     return userNames.computeIfAbsent(userId, id ->
       userGateway.findById(id)
-        .map(UserSummaryOutput::name)
+        .map(UserSummary::name)
         .orElse(null));
   }
 
