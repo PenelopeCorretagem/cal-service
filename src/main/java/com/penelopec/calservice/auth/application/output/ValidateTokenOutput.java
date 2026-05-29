@@ -1,4 +1,6 @@
 package com.penelopec.calservice.auth.application.output;
 
-public record ValidateTokenOutput(String email, Long id, String accessLevel) {
-}
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record ValidateTokenOutput(String email, Long id, String accessLevel) {}
