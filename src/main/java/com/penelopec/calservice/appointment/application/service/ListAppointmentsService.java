@@ -10,7 +10,9 @@ import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.appointment.domain.repository.PageResult;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
+import com.penelopec.calservice.shared.cache.CacheNames;
 import com.penelopec.calservice.shared.pagination.Page;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +29,10 @@ public class ListAppointmentsService implements ListAppointmentsUseCase {
   }
 
   @Override
+  @Cacheable(
+    value = CacheNames.APPOINTMENTS,
+    key = "#query.clientId + ':' + #query.estateAgentId + ':' + #query.estateId + ':' + #query.status + ':' + #query.startDateTime + ':' + #query.endDateTime + ':' + #query.page + ':' + #query.size"
+  )
   public Page<AppointmentOutput> execute(ListAppointmentsQuery query) {
     queryValidator.validateAndThrow(query);
 

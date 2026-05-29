@@ -1,4 +1,7 @@
 package com.penelopec.calservice.auth.application.output;
 
-public record LoginOutput(String token, Long userId, String accessLevel) {
-}
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record LoginOutput(String token, @JsonAlias("id") Long userId, String accessLevel) {}

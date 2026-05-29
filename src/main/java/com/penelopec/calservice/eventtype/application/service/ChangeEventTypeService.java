@@ -7,9 +7,13 @@ import com.penelopec.calservice.eventtype.application.port.in.ChangeEventTypeUse
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
+import com.penelopec.calservice.shared.cache.CacheNames;
 import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import com.penelopec.calservice.shared.validation.CommandValidator;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Caching;
 
 public class ChangeEventTypeService implements ChangeEventTypeUseCase {
 
@@ -26,6 +30,12 @@ public class ChangeEventTypeService implements ChangeEventTypeUseCase {
   }
 
   @Override
+    @Caching(evict = {
+      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true),
+      @CacheEvict(value = CacheNames.AVAILABLE_SLOTS, allEntries = true)
+    }, put = {
+      @CachePut(value = CacheNames.EVENT_TYPE, key = "#command.eventTypeId")
+    })
   public EventTypeOutput execute(UpdateEventTypeCommand command) {
     validator.validateAndThrow(command);
 

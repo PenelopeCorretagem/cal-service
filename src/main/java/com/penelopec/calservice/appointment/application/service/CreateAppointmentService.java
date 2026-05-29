@@ -1,5 +1,6 @@
 package com.penelopec.calservice.appointment.application.service;
 
+import com.penelopec.calservice.shared.cache.CacheNames;
 import com.penelopec.calservice.appointment.application.command.AppointmentCommand;
 import com.penelopec.calservice.appointment.application.mapper.AppointmentOutputMapper;
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
@@ -13,6 +14,9 @@ import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway.
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
 import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.shared.validation.CommandValidator;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Caching;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -36,6 +40,13 @@ public class CreateAppointmentService implements CreateAppointmentUseCase {
   }
 
   @Override
+    @Caching(evict = {
+      @CacheEvict(value = CacheNames.APPOINTMENTS, allEntries = true),
+      @CacheEvict(value = CacheNames.AVAILABLE_SLOTS, allEntries = true),
+      @CacheEvict(value = CacheNames.SCHEDULES, allEntries = true)
+    }, put = {
+      @CachePut(value = CacheNames.APPOINTMENT, key = "#result.id")
+    })
   public AppointmentOutput execute(AppointmentCommand command) {
     validator.validateAndThrow(command);
 

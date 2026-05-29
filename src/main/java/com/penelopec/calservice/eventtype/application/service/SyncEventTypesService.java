@@ -7,15 +7,17 @@ import com.penelopec.calservice.eventtype.application.port.in.CreateEventTypeUse
 import com.penelopec.calservice.eventtype.application.port.in.SyncEventTypesUseCase;
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.error.EventTypeError;
-import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import com.penelopec.calservice.eventtype.domain.gateway.AdvertisementGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.AdvertisementResponse;
 import com.penelopec.calservice.eventtype.infrastructure.web.monolith.dto.EstateResponse;
+import com.penelopec.calservice.shared.cache.CacheNames;
 import com.penelopec.calservice.shared.error.core.DomainException;
 import com.penelopec.calservice.shared.error.core.GatewayException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 
 public class SyncEventTypesService implements SyncEventTypesUseCase {
 
@@ -39,6 +41,11 @@ public class SyncEventTypesService implements SyncEventTypesUseCase {
   }
 
   @Override
+  @Caching(evict = {
+      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true),
+      @CacheEvict(value = CacheNames.EVENT_TYPE, allEntries = true),
+      @CacheEvict(value = CacheNames.AVAILABLE_SLOTS, allEntries = true)
+  })
   public void execute() {
     try {
       advertisementGateway.fetchAllAdvertisements().forEach(

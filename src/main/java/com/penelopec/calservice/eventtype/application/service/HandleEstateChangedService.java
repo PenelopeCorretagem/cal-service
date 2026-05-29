@@ -5,9 +5,12 @@ import com.penelopec.calservice.eventtype.application.port.in.HandleEstateChange
 import com.penelopec.calservice.eventtype.domain.entity.EventType;
 import com.penelopec.calservice.eventtype.domain.gateway.CalComEventTypeGateway;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
+import com.penelopec.calservice.shared.cache.CacheNames;
 import com.penelopec.calservice.shared.validation.CommandValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 
 import java.util.Optional;
 
@@ -28,6 +31,11 @@ public class HandleEstateChangedService implements HandleEstateChangedUseCase {
   }
 
   @Override
+  @Caching(evict = {
+      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true),
+      @CacheEvict(value = CacheNames.EVENT_TYPE, allEntries = true),
+      @CacheEvict(value = CacheNames.AVAILABLE_SLOTS, allEntries = true)
+  })
   public void execute(HandleEstateChangedCommand command) {
     validator.validateAndThrow(command);
 

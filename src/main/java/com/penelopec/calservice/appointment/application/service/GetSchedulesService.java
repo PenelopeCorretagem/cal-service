@@ -6,6 +6,8 @@ import com.penelopec.calservice.appointment.application.output.ScheduleOutput.Ov
 import com.penelopec.calservice.appointment.application.usecase.GetSchedulesUseCase;
 import com.penelopec.calservice.appointment.domain.gateway.CalComScheduleGateway;
 import com.penelopec.calservice.appointment.domain.gateway.CalComScheduleGateway.ScheduleResult;
+import com.penelopec.calservice.shared.cache.CacheNames;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
 
@@ -18,6 +20,7 @@ public class GetSchedulesService implements GetSchedulesUseCase {
   }
 
   @Override
+  @Cacheable(value = CacheNames.SCHEDULES, key = "'all'")
   public List<ScheduleOutput> execute() {
     return scheduleGateway.getSchedules().stream()
       .map(this::toOutput)

@@ -4,9 +4,6 @@ import com.penelopec.calservice.eventtype.application.command.CreateEventTypeCom
 import com.penelopec.calservice.eventtype.application.command.HandleEstateChangedCommand;
 import com.penelopec.calservice.eventtype.application.port.in.CreateEventTypeUseCase;
 import com.penelopec.calservice.eventtype.application.port.in.HandleEstateChangedUseCase;
-import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateChangedConsumer;
-import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateChangedMessage;
-import com.penelopec.calservice.eventtype.infrastructure.messaging.EstateStatus;
 import com.rabbitmq.client.Channel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.CacheManager;
 
 import java.time.Instant;
 
@@ -39,11 +37,14 @@ class EstateChangedConsumerTest {
   @Mock
   private Channel channel;
 
+  @Mock
+  private CacheManager cacheManager;
+
   private EstateChangedConsumer consumer;
 
   @BeforeEach
   void setUp() {
-    consumer = new EstateChangedConsumer(handleEstateChangedUseCase, createEventTypeUseCase);
+    consumer = new EstateChangedConsumer(handleEstateChangedUseCase, createEventTypeUseCase, cacheManager);
   }
 
   @Nested
@@ -106,6 +107,8 @@ class EstateChangedConsumerTest {
       assertThat(captor.getValue().estateId()).isEqualTo(10L);
       assertThat(captor.getValue().title()).isEqualTo("Title");
       assertThat(captor.getValue().description()).isEqualTo("Desc");
+      assertThat(captor.getValue().lengthInMinutes()).isEqualTo(60);
+      assertThat(captor.getValue().minimumBookingNotice()).isEqualTo(60);
       assertThat(captor.getValue().hidden()).isFalse();
     }
 
