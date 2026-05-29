@@ -11,6 +11,7 @@ import com.penelopec.calservice.shared.pagination.Page;
 import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
+import java.util.Map;
 
 public class ListEventTypesService implements ListEventTypesUseCase {
 
@@ -26,28 +27,33 @@ public class ListEventTypesService implements ListEventTypesUseCase {
     @Override
   @Cacheable(value = CacheNames.EVENT_TYPES, key = "#page + ':' + #size")
   public Page<EventTypeOutput> execute(int page, int size) {
-    List<EventTypeOutput> outputs = calComGateway.listAll().stream()
-      .map(this::enrichEventTypeWithEstateId)
+    List<EventType> allEventTypes = calComGateway.listAll();
+    
+    // Preload all local EventTypes once to avoid N+1 queries
+    List<EventType> localEvents = eventTypeRepository.findAll();
+    Map<Long, EventType> localById = localEvents.stream()
+      .collect(java.util.stream.Collectors.toMap(EventType::getId, e -> e));
+    
+    List<EventTypeOutput> outputs = allEventTypes.stream()
+      .map(eventType -> enrichEventTypeWithEstateId(eventType, localById))
       .map(EventTypeOutputMapper::toOutput)
       .toList();
     return Page.from(outputs, page, size);
   }
 
-  private EventType enrichEventTypeWithEstateId(EventType eventType) {
-    if (eventType.getEstateId() == null) {
-      return eventTypeRepository.findById(eventType.getId())
-        .map(local -> EventType.reconstitute(
-          eventType.getId(),
-          eventType.getTitle(),
-          eventType.getSlugValue(),
-          eventType.getDescription(),
-          eventType.getLengthInMinutes(),
-          eventType.getMinimumBookingNotice(),
-          eventType.isHidden(),
-          local.getEstateId()))
-        .orElse(eventType);
+  private EventType enrichEventTypeWithEstateId(EventType eventType, Map<Long, EventType> localById) {
+    if (eventType.getEstateId() == null && localById.containsKey(eventType.getId())) {
+      EventType local = localById.get(eventType.getId());
+      return EventType.reconstitute(
+        eventType.getId(),
+        eventType.getTitle(),
+        eventType.getSlugValue(),
+        eventType.getDescription(),
+        eventType.getLengthInMinutes(),
+        eventType.getMinimumBookingNotice(),
+        eventType.isHidden(),
+        local.getEstateId());
     }
-
     return eventType;
   }
 
