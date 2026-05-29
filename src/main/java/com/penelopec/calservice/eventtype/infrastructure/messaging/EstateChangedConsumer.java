@@ -84,9 +84,13 @@ public class EstateChangedConsumer {
   }
 
   private void evictCache(String cacheName) {
-    Cache cache = cacheManager.getCache(cacheName);
-    if (cache != null) {
-      cache.clear();
+    try {
+      Cache cache = cacheManager.getCache(cacheName);
+      if (cache != null) {
+        cache.clear();
+      }
+    } catch (RuntimeException e) {
+      log.warn("Falha ao limpar cache='{}' após processar mensagem. Seguindo sem invalidar cache.", cacheName, e);
     }
   }
 }

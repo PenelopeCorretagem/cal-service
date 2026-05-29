@@ -21,7 +21,8 @@ public class DeleteEventTypeService implements DeleteEventTypeUseCase {
   @Override
   @Caching(evict = {
       @CacheEvict(value = CacheNames.EVENT_TYPE, key = "#eventTypeId"),
-      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true)
+      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true),
+      @CacheEvict(value = CacheNames.AVAILABLE_SLOTS, allEntries = true)
   })
   public void execute(Long eventTypeId) {
     if (eventTypeId == null) {

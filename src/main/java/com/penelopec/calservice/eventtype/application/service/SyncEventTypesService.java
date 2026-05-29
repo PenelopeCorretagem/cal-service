@@ -43,7 +43,8 @@ public class SyncEventTypesService implements SyncEventTypesUseCase {
   @Override
   @Caching(evict = {
       @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true),
-      @CacheEvict(value = CacheNames.EVENT_TYPE, allEntries = true)
+      @CacheEvict(value = CacheNames.EVENT_TYPE, allEntries = true),
+      @CacheEvict(value = CacheNames.AVAILABLE_SLOTS, allEntries = true)
   })
   public void execute() {
     try {

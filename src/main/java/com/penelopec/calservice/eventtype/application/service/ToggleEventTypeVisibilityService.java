@@ -26,7 +26,8 @@ public class ToggleEventTypeVisibilityService implements ToggleEventTypeVisibili
 
   @Override
     @Caching(evict = {
-      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true)
+      @CacheEvict(value = CacheNames.EVENT_TYPES, allEntries = true),
+      @CacheEvict(value = CacheNames.AVAILABLE_SLOTS, allEntries = true)
     }, put = {
       @CachePut(value = CacheNames.EVENT_TYPE, key = "#eventTypeId")
     })
