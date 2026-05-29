@@ -1,6 +1,6 @@
 package com.penelopec.calservice.appointment.infrastructure.export;
 
-import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.application.output.ExportAppointmentOutput;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
@@ -19,6 +19,9 @@ public final class AppointmentExportFormatter {
   private static final String[] HEADERS = {
     "id",
     "status",
+    "nomeAnuncio",
+    "nomeCliente",
+    "nomeCorretor",
     "inicio",
     "fim",
     "nomeParticipante",
@@ -34,18 +37,18 @@ public final class AppointmentExportFormatter {
   private AppointmentExportFormatter() {
   }
 
-  public static String toCsv(List<AppointmentOutput> appointments) {
+  public static String toCsv(List<ExportAppointmentOutput> appointments) {
     StringBuilder csv = new StringBuilder();
     csv.append(String.join(",", HEADERS)).append('\n');
 
-    for (AppointmentOutput appointment : appointments) {
+    for (ExportAppointmentOutput appointment : appointments) {
       csv.append(toCsvLine(appointment)).append('\n');
     }
 
     return csv.toString();
   }
 
-  public static byte[] toXlsx(List<AppointmentOutput> appointments) {
+  public static byte[] toXlsx(List<ExportAppointmentOutput> appointments) {
     try (var workbook = new XSSFWorkbook(); var output = new ByteArrayOutputStream()) {
       Sheet sheet = workbook.createSheet("appointments");
       CellStyle dateTimeStyle = workbook.createCellStyle();
@@ -60,7 +63,7 @@ public final class AppointmentExportFormatter {
         cell.setCellValue(HEADERS[i]);
       }
 
-      for (AppointmentOutput appointment : appointments) {
+      for (ExportAppointmentOutput appointment : appointments) {
         Row row = sheet.createRow(rowIndex++);
         writeRow(row, appointment, dateTimeStyle);
       }
@@ -76,10 +79,13 @@ public final class AppointmentExportFormatter {
     }
   }
 
-  private static void writeRow(Row row, AppointmentOutput appointment, CellStyle dateTimeStyle) {
+  private static void writeRow(Row row, ExportAppointmentOutput appointment, CellStyle dateTimeStyle) {
     int col = 0;
     row.createCell(col++).setCellValue(textValue(appointment.id()));
     row.createCell(col++).setCellValue(textValue(appointment.status()));
+    row.createCell(col++).setCellValue(textValue(appointment.advertisementName()));
+    row.createCell(col++).setCellValue(textValue(appointment.clientName()));
+    row.createCell(col++).setCellValue(textValue(appointment.estateAgentName()));
     writeDateCell(row.createCell(col++), appointment.startDateTime(), dateTimeStyle);
     writeDateCell(row.createCell(col++), appointment.endDateTime(), dateTimeStyle);
     row.createCell(col++).setCellValue(textValue(appointment.attendeeName()));
@@ -90,10 +96,13 @@ public final class AppointmentExportFormatter {
     writeDateCell(row.createCell(col++), appointment.updatedAt(), dateTimeStyle);
   }
 
-  private static String toCsvLine(AppointmentOutput appointment) {
+  private static String toCsvLine(ExportAppointmentOutput appointment) {
     return String.join(",",
       cell(appointment.id()),
       cell(appointment.status()),
+      cell(appointment.advertisementName()),
+      cell(appointment.clientName()),
+      cell(appointment.estateAgentName()),
       cell(appointment.startDateTime()),
       cell(appointment.endDateTime()),
       cell(appointment.attendeeName()),

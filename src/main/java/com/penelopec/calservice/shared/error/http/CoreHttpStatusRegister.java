@@ -28,5 +28,6 @@ public class CoreHttpStatusRegister {
     ErrorHttpStatusMapping.register(CoreError.SERVICE_UNAVAILABLE.code(),  HttpStatus.SERVICE_UNAVAILABLE);
     ErrorHttpStatusMapping.register(CoreError.GATEWAY_TIMEOUT.code(),      HttpStatus.GATEWAY_TIMEOUT);
     ErrorHttpStatusMapping.register(CoreError.AUTH_GATEWAY_FAILED.code(),  HttpStatus.BAD_GATEWAY);
+    ErrorHttpStatusMapping.register(CoreError.USER_GATEWAY_FAILED.code(),  HttpStatus.BAD_GATEWAY);
   }
 }

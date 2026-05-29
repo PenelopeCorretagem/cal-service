@@ -10,18 +10,18 @@ import java.util.List;
 
 public class ListEventTypesService implements ListEventTypesUseCase {
 
-  private final CalComEventTypeGateway calComGateway;
+    private final CalComEventTypeGateway calComGateway;
+    public ListEventTypesService(CalComEventTypeGateway calComGateway) {
+        this.calComGateway = calComGateway;
+    }
 
-  public ListEventTypesService(CalComEventTypeGateway calComGateway) {
-    this.calComGateway = calComGateway;
-  }
+    @Override
+    public Page<EventTypeOutput> execute(int page, int size) {
+        List<EventTypeOutput> outputs = calComGateway.listAll().stream()
+                .map(EventTypeOutputMapper::toOutput)
+                .toList();
 
-  @Override
-  public Page<EventTypeOutput> execute(int page, int size) {
-    List<EventTypeOutput> outputs = calComGateway.listAll().stream()
-      .map(EventTypeOutputMapper::toOutput)
-      .toList();
+        return Page.from(outputs, page, size);
+    }
 
-    return Page.from(outputs, page, size);
-  }
 }

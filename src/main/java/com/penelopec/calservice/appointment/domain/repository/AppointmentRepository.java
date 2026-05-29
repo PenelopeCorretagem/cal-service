@@ -23,7 +23,7 @@ public interface AppointmentRepository {
                                         Status status, LocalDateTime startDate,
                                         LocalDateTime endDate, int page, int size);
 
-  List<Appointment> findForExport(Long userId, LocalDateTime startDate, LocalDateTime endDate);
+  List<Appointment> findForExport(Long userId, LocalDateTime startDate, LocalDateTime endDate, Status status);
 
   void deleteById(Long id);
 }

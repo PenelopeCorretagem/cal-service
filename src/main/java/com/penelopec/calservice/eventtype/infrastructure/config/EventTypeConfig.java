@@ -45,7 +45,7 @@ public class EventTypeConfig {
   }
 
   @Bean
-  public ListEventTypesUseCase listEventTypesUseCase(CalComEventTypeGateway calComGateway) {
+  public ListEventTypesUseCase listEventTypesUseCase(CalComEventTypeGateway calComGateway, EventTypeRepository repository) {
     return new ListEventTypesService(calComGateway);
   }
 

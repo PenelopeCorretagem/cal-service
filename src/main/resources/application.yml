@@ -46,6 +46,9 @@ monolith:
 auth-service:
   base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:9000/api}
 
+user-service:
+  base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081/api}
+
 scheduler:
   sync:
     cron: ${SYNC_CRON:0 */5 * * * *}
