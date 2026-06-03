@@ -9,9 +9,11 @@ import com.penelopec.calservice.appointment.application.output.AppointmentOutput
 import com.penelopec.calservice.appointment.application.output.ExportAppointmentOutput;
 import com.penelopec.calservice.appointment.application.output.AvailableSlotsOutput;
 import com.penelopec.calservice.appointment.application.output.ScheduleOutput;
+import com.penelopec.calservice.appointment.application.output.AppointmentReportOutput;
 import com.penelopec.calservice.appointment.application.query.GetAvailableSlotsQuery;
 import com.penelopec.calservice.appointment.application.query.ExportAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.query.ListAppointmentsQuery;
+import com.penelopec.calservice.appointment.application.query.ReportAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.usecase.*;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CreateAppointmentRequest;
@@ -50,6 +52,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     private final GetSchedulesUseCase getSchedulesUseCase;
     private final GetAvailableSlotsUseCase getAvailableSlotsUseCase;
     private final ExportAppointmentsUseCase exportUseCase;
+    private final ReportAppointmentsUseCase reportUseCase;
 
     public AppointmentController(CreateAppointmentUseCase createUseCase,
                                  GetAppointmentUseCase getUseCase,
@@ -61,7 +64,8 @@ public class AppointmentController implements AppointmentControllerSwagger {
                                  DeleteAppointmentUseCase deleteUseCase,
                                  GetSchedulesUseCase getSchedulesUseCase,
                                  GetAvailableSlotsUseCase getAvailableSlotsUseCase,
-                                 ExportAppointmentsUseCase exportUseCase
+                                 ExportAppointmentsUseCase exportUseCase,
+                                 ReportAppointmentsUseCase reportUseCase
     ) {
         this.createUseCase = createUseCase;
         this.getUseCase = getUseCase;
@@ -74,6 +78,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
         this.getSchedulesUseCase = getSchedulesUseCase;
         this.getAvailableSlotsUseCase = getAvailableSlotsUseCase;
         this.exportUseCase = exportUseCase;
+        this.reportUseCase = reportUseCase;
     }
 
     @Override
@@ -260,6 +265,45 @@ public class AppointmentController implements AppointmentControllerSwagger {
         var query = new GetAvailableSlotsQuery(eventTypeId, start, end);
         AvailableSlotsOutput output = getAvailableSlotsUseCase.execute(query);
         return ResponseEntity.ok(output);
+    }
+
+    @Override
+    @GetMapping("/report")
+    public ResponseEntity<Page<AppointmentReportOutput>> report(
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) Long estateAgentId,
+            @RequestParam(required = false) Long estateId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String estateTypeKey,
+            @RequestParam(required = false) String startDateTime,
+            @RequestParam(required = false) String endDateTime,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            Authentication authentication
+    ) {
+        Long effectiveClientId = isClient(authentication) ? currentUserId(authentication) : clientId;
+        Long effectiveEstateAgentId;
+        if (isClient(authentication)) {
+            effectiveEstateAgentId = null;
+        } else if (isBroker(authentication)) {
+            effectiveEstateAgentId = currentUserId(authentication);
+        } else {
+            effectiveEstateAgentId = estateAgentId;
+        }
+
+        var query = new ReportAppointmentsQuery(
+                effectiveClientId,
+                effectiveEstateAgentId,
+                estateId,
+                status,
+                estateTypeKey,
+                startDateTime,
+                endDateTime,
+                page,
+                size
+        );
+
+        return ResponseEntity.ok(reportUseCase.execute(query));
     }
 
     private void assertCanCreateAppointment(Authentication authentication, Long clientId, Long estateAgentId) {

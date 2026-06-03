@@ -49,7 +49,7 @@ class SyncEventTypesServiceTest {
     void shouldCreateEventTypeForAdvertisementWithoutExistingBinding() {
       // Given
       AdvertisementResponse advertisement = new AdvertisementResponse(
-        true, new EstateResponse(101L, "Empreendimento A", "Desc A")
+        true, new EstateResponse(101L, "Empreendimento A", "Desc A", null, null)
       );
 
       when(advertisementGateway.fetchAllAdvertisements()).thenReturn(List.of(advertisement));
@@ -67,7 +67,7 @@ class SyncEventTypesServiceTest {
     void shouldUpdateEventTypeWhenTitleOrDescriptionChanges() {
       // Given
       AdvertisementResponse advertisement = new AdvertisementResponse(
-        true, new EstateResponse(202L, "Nome Novo", "Descrição Nova")
+        true, new EstateResponse(202L, "Nome Novo", "Descrição Nova", null, null)
       );
       EventType existing = EventType.reconstitute(88L, "Nome Antigo", "nome-antigo", "Descrição Antiga", 60, 120, false, 202L);
 
@@ -86,7 +86,7 @@ class SyncEventTypesServiceTest {
     void shouldNotUpdateEventTypeWhenDataIsUnchanged() {
       // Given
       AdvertisementResponse advertisement = new AdvertisementResponse(
-        false, new EstateResponse(303L, "Mesmo Nome", "Mesma Desc")
+        false, new EstateResponse(303L, "Mesmo Nome", "Mesma Desc", null, null)
       );
       EventType existing = EventType.reconstitute(44L, "Mesmo Nome", "mesmo-nome", "Mesma Desc", 60, 120, false, 303L);
 

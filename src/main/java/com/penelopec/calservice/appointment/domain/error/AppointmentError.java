@@ -214,6 +214,13 @@ public enum AppointmentError implements ErrorContract {
         "Formato de data inválido para periodoFim. Use yyyy-MM-dd.",
         ErrorType.VALIDATION,
         ErrorSeverity.WARN
+    ),
+
+    ESTATE_ENRICHMENT_FAILED(
+        "APT-ESTATE-ENRICHMENT-FAILED",
+        "Falha ao buscar dados de empreendimentos no serviço externo.",
+        ErrorType.GATEWAY,
+        ErrorSeverity.ERROR
     );
 
     private final String code;

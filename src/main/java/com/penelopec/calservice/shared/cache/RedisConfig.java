@@ -41,7 +41,8 @@ public class RedisConfig implements CachingConfigurer {
                     CacheNames.SCHEDULES,      ttl(Duration.ofMinutes(10)),
                         CacheNames.EVENT_TYPE,     ttl(Duration.ofHours(1)),
                         CacheNames.EVENT_TYPES,    ttl(Duration.ofHours(1)),
-                        CacheNames.AVAILABLE_SLOTS, ttl(Duration.ofMinutes(2))
+                        CacheNames.AVAILABLE_SLOTS, ttl(Duration.ofMinutes(2)),
+                        CacheNames.ESTATES,         ttl(Duration.ofMinutes(5))
                 ))
                 .build();
     }

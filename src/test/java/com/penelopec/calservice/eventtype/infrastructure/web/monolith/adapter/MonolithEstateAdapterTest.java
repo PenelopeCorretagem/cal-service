@@ -67,8 +67,8 @@ class MonolithEstateAdapterTest {
     void shouldReturnAdvertisementResponses() {
       // Given
       List<AdvertisementResponse> response = List.of(
-        new AdvertisementResponse(true, new EstateResponse(1L, "Emp 1", "Desc 1")),
-        new AdvertisementResponse(false, new EstateResponse(2L, "Emp 2", "Desc 2"))
+        new AdvertisementResponse(true, new EstateResponse(1L, "Emp 1", "Desc 1", null, null)),
+        new AdvertisementResponse(false, new EstateResponse(2L, "Emp 2", "Desc 2", null, null))
       );
 
       when(restClient.get()

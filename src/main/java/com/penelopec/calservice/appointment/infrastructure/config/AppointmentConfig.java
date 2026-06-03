@@ -9,11 +9,14 @@ import com.penelopec.calservice.appointment.application.validator.ListAppointmen
 import com.penelopec.calservice.appointment.application.validator.RescheduleAppointmentCommandValidator;
 import com.penelopec.calservice.appointment.domain.gateway.CalComBookingGateway;
 import com.penelopec.calservice.appointment.domain.gateway.CalComScheduleGateway;
+import com.penelopec.calservice.appointment.domain.gateway.EstateEnrichmentGateway;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
+import com.penelopec.calservice.appointment.infrastructure.web.monolith.adapter.AppointmentEstateEnrichmentAdapter;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter.CalComBookingAdapter;
 import com.penelopec.calservice.appointment.infrastructure.web.calcom.adapter.CalComScheduleAdapter;
 import com.penelopec.calservice.eventtype.domain.repository.EventTypeRepository;
 import com.penelopec.calservice.eventtype.infrastructure.config.properties.CalcomProperties;
+import com.penelopec.calservice.eventtype.infrastructure.config.properties.MonolithProperties;
 import com.penelopec.calservice.shared.http.config.RestClientBuilderFactory;
 import com.penelopec.calservice.shared.http.executor.RestExecutor;
 import com.penelopec.calservice.user.domain.gateway.UserGateway;
@@ -107,5 +110,18 @@ public class AppointmentConfig {
   public DeleteAppointmentUseCase deleteAppointmentUseCase(CalComBookingGateway gateway,
                                                            AppointmentRepository repository) {
     return new DeleteAppointmentService(gateway, repository);
+  }
+
+  @Bean
+  public EstateEnrichmentGateway estateEnrichmentGateway(RestClient monolithRestClient,
+                                                         MonolithProperties monolithProperties,
+                                                         RestExecutor restExecutor) {
+    return new AppointmentEstateEnrichmentAdapter(monolithRestClient, monolithProperties, restExecutor);
+  }
+
+  @Bean
+  public ReportAppointmentsUseCase reportAppointmentsUseCase(AppointmentRepository repository,
+                                                             EstateEnrichmentGateway estateEnrichmentGateway) {
+    return new ReportAppointmentsService(repository, estateEnrichmentGateway);
   }
 }
