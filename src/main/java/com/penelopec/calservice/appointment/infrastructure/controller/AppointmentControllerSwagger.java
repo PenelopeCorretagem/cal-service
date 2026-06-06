@@ -789,10 +789,10 @@ public interface AppointmentControllerSwagger {
       
       **Regras de acesso por perfil:**
       - `ADMIN`: acesso livre a todos os filtros.
-      - `CORRETOR`: filtra automaticamente pelos próprios agendamentos (`estateAgentId` fixado ao ID do token). Os parâmetros `clientId`, `estateId` e `estateTypeKey` permanecem opcionais.
+      - `CORRETOR`: filtra automaticamente pelos próprios agendamentos (`estateAgentId` fixado ao ID do token). Os parâmetros `clientId`, `estateId` e `estateType` permanecem opcionais.
       - `CLIENTE`: filtra automaticamente pelos próprios agendamentos (`clientId` fixado ao ID do token). `estateAgentId` é ignorado.
       
-      O campo `estateTypeKey` permite filtrar por tipo de empreendimento (ex: `APARTAMENTO`, `CASA`).
+      O campo `estateType` permite filtrar por tipo de empreendimento (ex: `APARTAMENTO`, `CASA`).
       """
   )
   @ApiResponses({
@@ -816,7 +816,7 @@ public interface AppointmentControllerSwagger {
                   "estate": {
                     "id": 30,
                     "title": "Jardins Residencial",
-                    "type": { "key": "APARTAMENTO", "friendlyName": "Apartamento" }
+                    "type": "APARTAMENTO"
                   },
                   "durationMinutes": 60,
                   "status": "CONFIRMED",
@@ -854,7 +854,7 @@ public interface AppointmentControllerSwagger {
     @Parameter(description = "Filtra por corretor (ignorado para CLIENTE)", example = "20") @RequestParam(required = false) Long estateAgentId,
     @Parameter(description = "Filtra por empreendimento", example = "30") @RequestParam(required = false) Long estateId,
     @Parameter(description = "Filtra por status (PENDING, CONFIRMED, CANCELLED, CONCLUDED)", example = "CONFIRMED") @RequestParam(required = false) String status,
-    @Parameter(description = "Filtra por tipo de empreendimento (chave)", example = "APARTAMENTO") @RequestParam(required = false) String estateTypeKey,
+    @Parameter(description = "Filtra por tipo de empreendimento (chave)", example = "APARTAMENTO") @RequestParam(required = false) String estateType,
     @Parameter(description = "Data/hora inicial (ISO-8601)", example = "2026-04-10T00:00:00") @RequestParam(required = false) String startDateTime,
     @Parameter(description = "Data/hora final (ISO-8601)", example = "2026-04-30T23:59:59") @RequestParam(required = false) String endDateTime,
     @Parameter(description = "Página (base 0, padrão 0)", example = "0") @RequestParam(defaultValue = "0") Integer page,

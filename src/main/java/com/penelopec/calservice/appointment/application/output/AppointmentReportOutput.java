@@ -20,8 +20,7 @@ public record AppointmentReportOutput(
     LocalDateTime createdAt,
     LocalDateTime updatedAt,
     String estateTitle,
-    String estateTypeKey,
-    String estateTypeFriendlyName,
+    String estateType,
     String eventTypeTitle,
     ClientInfo client,
     EstateAgentInfo estateAgent,
@@ -33,9 +32,7 @@ public record AppointmentReportOutput(
 
     public record EstateAgentInfo(Long id, String name, String creci) {}
 
-    public record EstateInfo(Long id, String title, EstateTypeInfo type) {
-        public record EstateTypeInfo(String key, String friendlyName) {}
-    }
+    public record EstateInfo(Long id, String title, String type) {}
 
     public record EventTypeInfo(Long id, String title) {}
 }

@@ -4,6 +4,5 @@ public record EstateResponse(
   Long id,
   String title,
   String description,
-  String typeKey,
-  String typeFriendlyName
+  String type
 ) { }

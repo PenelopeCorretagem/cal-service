@@ -52,8 +52,7 @@ public class AppointmentEstateEnrichmentAdapter implements EstateEnrichmentGatew
                 .map(r -> new EstateData(
                     r.estate().id(),
                     r.estate().title(),
-                    r.estate().typeKey(),
-                    r.estate().typeFriendlyName()
+                    r.estate().type()
                 ))
                 .toList();
 

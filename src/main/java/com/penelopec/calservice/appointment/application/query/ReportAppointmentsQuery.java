@@ -5,7 +5,7 @@ public record ReportAppointmentsQuery(
     Long estateAgentId,
     Long estateId,
     String status,
-    String estateTypeKey,
+    String estateType,
     String startDateTime,
     String endDateTime,
     Integer page,

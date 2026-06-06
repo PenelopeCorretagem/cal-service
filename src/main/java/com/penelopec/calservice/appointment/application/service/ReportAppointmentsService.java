@@ -4,7 +4,6 @@ import com.penelopec.calservice.appointment.application.output.AppointmentReport
 import com.penelopec.calservice.appointment.application.output.AppointmentReportOutput.ClientInfo;
 import com.penelopec.calservice.appointment.application.output.AppointmentReportOutput.EstateAgentInfo;
 import com.penelopec.calservice.appointment.application.output.AppointmentReportOutput.EstateInfo;
-import com.penelopec.calservice.appointment.application.output.AppointmentReportOutput.EstateInfo.EstateTypeInfo;
 import com.penelopec.calservice.appointment.application.output.AppointmentReportOutput.EventTypeInfo;
 import com.penelopec.calservice.appointment.application.query.ReportAppointmentsQuery;
 import com.penelopec.calservice.appointment.application.usecase.ReportAppointmentsUseCase;
@@ -52,11 +51,11 @@ public class ReportAppointmentsService implements ReportAppointmentsUseCase {
             .collect(Collectors.toMap(EstateData::id, e -> e));
 
         Set<Long> effectiveEstateIds = computeEffectiveEstateIds(
-            query.estateId(), query.estateTypeKey(), allEstates);
+            query.estateId(), query.estateType(), allEstates);
 
         if (effectiveEstateIds != null && effectiveEstateIds.isEmpty()) {
-            log.debug("Filtros contraditórios: estateId={} não pertence a estateTypeKey='{}'. Retornando página vazia.",
-                query.estateId(), query.estateTypeKey());
+            log.debug("Filtros contraditórios: estateId={} não pertence a estateType='{}'. Retornando página vazia.",
+                query.estateId(), query.estateType());
             return new Page<>(List.of(), page, size, 0, 0);
         }
 
@@ -72,15 +71,15 @@ public class ReportAppointmentsService implements ReportAppointmentsUseCase {
             pageResult.totalElements(), pageResult.totalPages());
     }
 
-    private Set<Long> computeEffectiveEstateIds(Long estateId, String estateTypeKey,
+    private Set<Long> computeEffectiveEstateIds(Long estateId, String estateType,
                                                 List<EstateData> allEstates) {
-        if (estateTypeKey == null || estateTypeKey.isBlank()) {
+        if (estateType == null || estateType.isBlank()) {
             return estateId != null ? Set.of(estateId) : null;
         }
 
-        String normalizedKey = estateTypeKey.trim().toUpperCase();
+        String normalizedKey = estateType.trim().toUpperCase();
         Set<Long> typeMatchingIds = allEstates.stream()
-            .filter(e -> normalizedKey.equals(e.typeKey()))
+            .filter(e -> normalizedKey.equals(e.type()))
             .map(EstateData::id)
             .collect(Collectors.toSet());
 
@@ -114,8 +113,7 @@ public class ReportAppointmentsService implements ReportAppointmentsUseCase {
             row.createdAt(),
             row.updatedAt(),
             estate != null ? estate.title() : null,
-            estate != null ? estate.typeKey() : null,
-            estate != null ? estate.typeFriendlyName() : null,
+            estate != null ? estate.type() : null,
             row.eventTypeTitle(),
             new ClientInfo(row.clientId(), row.attendeeName(), row.attendeeEmail()),
             new EstateAgentInfo(row.estateAgentId(), null, null),
@@ -126,10 +124,7 @@ public class ReportAppointmentsService implements ReportAppointmentsUseCase {
 
     private EstateInfo buildEstateInfo(Long estateId, EstateData estate) {
         if (estate != null) {
-            EstateTypeInfo typeInfo = (estate.typeKey() != null)
-                ? new EstateTypeInfo(estate.typeKey(), estate.typeFriendlyName())
-                : null;
-            return new EstateInfo(estate.id(), estate.title(), typeInfo);
+            return new EstateInfo(estate.id(), estate.title(), estate.type());
         }
         return estateId != null ? new EstateInfo(estateId, null, null) : null;
     }
