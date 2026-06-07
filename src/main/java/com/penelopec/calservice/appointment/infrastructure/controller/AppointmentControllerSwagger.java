@@ -1,6 +1,7 @@
 package com.penelopec.calservice.appointment.infrastructure.controller;
 
 import com.penelopec.calservice.appointment.application.output.AppointmentOutput;
+import com.penelopec.calservice.appointment.application.output.AppointmentReportOutput;
 import com.penelopec.calservice.appointment.application.output.AvailableSlotsOutput;
 import com.penelopec.calservice.appointment.application.output.ScheduleOutput;
 import com.penelopec.calservice.appointment.infrastructure.controller.dto.CancelAppointmentRequest;
@@ -775,5 +776,89 @@ public interface AppointmentControllerSwagger {
     @Parameter(description = "ID do tipo de evento", example = "100", required = true) @RequestParam Long eventTypeId,
     @Parameter(description = "Data início (ISO-8601, ex: 2026-04-28)", example = "2026-04-28", required = true) @RequestParam String start,
     @Parameter(description = "Data fim (ISO-8601, ex: 2026-04-30)", example = "2026-04-30", required = true) @RequestParam String end
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /appointments/report
+  // ──────────────────────────────────────────────
+
+  @Operation(
+    summary = "Relatório de agendamentos",
+    description = """
+      Retorna um relatório paginado de agendamentos enriquecido com dados do empreendimento.
+      
+      **Regras de acesso por perfil:**
+      - `ADMIN`: acesso livre a todos os filtros.
+      - `CORRETOR`: filtra automaticamente pelos próprios agendamentos (`estateAgentId` fixado ao ID do token). Os parâmetros `clientId`, `estateId` e `estateType` permanecem opcionais.
+      - `CLIENTE`: filtra automaticamente pelos próprios agendamentos (`clientId` fixado ao ID do token). `estateAgentId` é ignorado.
+      
+      O campo `estateType` permite filtrar por tipo de empreendimento (ex: `APARTAMENTO`, `CASA`).
+      """
+  )
+  @ApiResponses({
+    @ApiResponse(
+      responseCode = "200",
+      description = "Relatório paginado retornado com sucesso",
+      content = @Content(
+        mediaType = "application/json",
+        schema = @Schema(implementation = Page.class),
+        examples = @ExampleObject(
+          name = "Relatório",
+          value = """
+            {
+              "content": [
+                {
+                  "id": 1,
+                  "bookingUid": "bk_abc123",
+                  "eventType": { "id": 100, "title": "Visita ao empreendimento" },
+                  "client": { "id": 10, "name": "Maria Silva", "email": "maria@email.com" },
+                  "estateAgent": { "id": 20, "name": null, "creci": null },
+                  "estate": {
+                    "id": 30,
+                    "title": "Jardins Residencial",
+                    "type": "APARTAMENTO"
+                  },
+                  "durationMinutes": 60,
+                  "status": "CONFIRMED",
+                  "startDateTime": "2026-04-10T14:00:00",
+                  "endDateTime": "2026-04-10T15:00:00",
+                  "attendeeName": "Maria Silva",
+                  "attendeeEmail": "maria@email.com",
+                  "notes": "Primeira visita",
+                  "reason": null,
+                  "createdAt": "2026-03-22T10:00:00",
+                  "updatedAt": "2026-03-22T10:00:00"
+                }
+              ],
+              "page": 0,
+              "size": 20,
+              "totalElements": 1,
+              "totalPages": 1
+            }"""
+        )
+      )
+    ),
+    @ApiResponse(
+      responseCode = "401",
+      description = "Token JWT ausente ou inválido",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    ),
+    @ApiResponse(
+      responseCode = "403",
+      description = "Acesso negado",
+      content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+  })
+  ResponseEntity<Page<AppointmentReportOutput>> report(
+    @Parameter(description = "Filtra por cliente (ignorado para CLIENTE)", example = "10") @RequestParam(required = false) Long clientId,
+    @Parameter(description = "Filtra por corretor (ignorado para CLIENTE)", example = "20") @RequestParam(required = false) Long estateAgentId,
+    @Parameter(description = "Filtra por empreendimento", example = "30") @RequestParam(required = false) Long estateId,
+    @Parameter(description = "Filtra por status (PENDING, CONFIRMED, CANCELLED, CONCLUDED)", example = "CONFIRMED") @RequestParam(required = false) String status,
+    @Parameter(description = "Filtra por tipo de empreendimento (chave)", example = "APARTAMENTO") @RequestParam(required = false) String estateType,
+    @Parameter(description = "Data/hora inicial (ISO-8601)", example = "2026-04-10T00:00:00") @RequestParam(required = false) String startDateTime,
+    @Parameter(description = "Data/hora final (ISO-8601)", example = "2026-04-30T23:59:59") @RequestParam(required = false) String endDateTime,
+    @Parameter(description = "Página (base 0, padrão 0)", example = "0") @RequestParam(defaultValue = "0") Integer page,
+    @Parameter(description = "Tamanho da página (padrão 20, máximo 100)", example = "20") @RequestParam(defaultValue = "20") Integer size,
+    Authentication authentication
   );
 }

@@ -2,12 +2,14 @@ package com.penelopec.calservice.appointment.infrastructure.persistence.adapter;
 
 import com.penelopec.calservice.appointment.domain.entity.Appointment;
 import com.penelopec.calservice.appointment.domain.repository.AppointmentRepository;
+import com.penelopec.calservice.appointment.domain.repository.AppointmentReportRow;
 import com.penelopec.calservice.appointment.domain.repository.PageResult;
 import com.penelopec.calservice.appointment.domain.valueobject.Status;
 import com.penelopec.calservice.appointment.infrastructure.persistence.entity.AppointmentJpaEntity;
 import com.penelopec.calservice.appointment.infrastructure.persistence.mapper.AppointmentJpaMapper;
 import com.penelopec.calservice.appointment.infrastructure.persistence.repository.AppointmentJpaRepository;
 import com.penelopec.calservice.eventtype.infrastructure.persistence.entity.EventTypeJpaEntity;
+import com.penelopec.calservice.eventtype.infrastructure.persistence.repository.EventTypeJpaRepository;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -17,10 +19,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class AppointmentRepositoryAdapter implements AppointmentRepository {
@@ -29,9 +35,12 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
     java.util.Set.of(Status.CANCELLED.name(), Status.CONCLUDED.name());
 
   private final AppointmentJpaRepository jpaRepository;
+  private final EventTypeJpaRepository eventTypeJpaRepository;
 
-  public AppointmentRepositoryAdapter(AppointmentJpaRepository jpaRepository) {
+  public AppointmentRepositoryAdapter(AppointmentJpaRepository jpaRepository,
+                                      EventTypeJpaRepository eventTypeJpaRepository) {
     this.jpaRepository = jpaRepository;
+    this.eventTypeJpaRepository = eventTypeJpaRepository;
   }
 
   @Override
@@ -115,6 +124,96 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
   @Override
   public void deleteById(Long id) {
     jpaRepository.deleteById(id);
+  }
+
+  @Override
+  public PageResult<AppointmentReportRow> findForReport(Long clientId, Long estateAgentId,
+                                                        Set<Long> estateIds,
+                                                        Status status, LocalDateTime startDate,
+                                                        LocalDateTime endDate, int page, int size) {
+    Specification<AppointmentJpaEntity> spec = buildReportSpecification(
+      clientId, estateAgentId, estateIds, status, startDate, endDate);
+
+    PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startDateTime"));
+    Page<AppointmentJpaEntity> jpaPage = jpaRepository.findAll(spec, pageRequest);
+
+    Set<Long> eventTypeIds = jpaPage.getContent().stream()
+      .map(AppointmentJpaEntity::getEventTypeId)
+      .filter(java.util.Objects::nonNull)
+      .collect(Collectors.toSet());
+
+    Map<Long, EventTypeJpaEntity> eventTypeMap = eventTypeIds.isEmpty() ? Map.of() :
+      eventTypeJpaRepository.findAllById(eventTypeIds).stream()
+        .collect(Collectors.toMap(EventTypeJpaEntity::getId, e -> e));
+
+    List<AppointmentReportRow> content = jpaPage.getContent().stream()
+      .map(a -> {
+        EventTypeJpaEntity et = eventTypeMap.get(a.getEventTypeId());
+        return new AppointmentReportRow(
+          a.getId(),
+          a.getBookingUid(),
+          a.getEventTypeId(),
+          a.getClientId(),
+          a.getEstateAgentId(),
+          calcDurationMinutes(a.getStartDateTime(), a.getEndDateTime()),
+          a.getStatus(),
+          a.getStartDateTime(),
+          a.getEndDateTime(),
+          a.getAttendeeName(),
+          a.getAttendeeEmail(),
+          a.getNotes(),
+          a.getReason(),
+          a.getCreatedAt(),
+          a.getUpdatedAt(),
+          et != null ? et.getTitle() : null,
+          et != null ? et.getEstateId() : null
+        );
+      })
+      .toList();
+
+    return new PageResult<>(content, jpaPage.getNumber(), jpaPage.getSize(),
+      jpaPage.getTotalElements(), jpaPage.getTotalPages());
+  }
+
+  private int calcDurationMinutes(LocalDateTime start, LocalDateTime end) {
+    if (start == null || end == null) {
+      return 0;
+    }
+    return (int) Duration.between(start, end).toMinutes();
+  }
+
+  private Specification<AppointmentJpaEntity> buildReportSpecification(
+      Long clientId, Long estateAgentId, Set<Long> estateIds,
+      Status status, LocalDateTime startDate, LocalDateTime endDate) {
+
+    return (root, query, cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+
+      if (clientId != null) {
+        predicates.add(cb.equal(root.get("clientId"), clientId));
+      }
+      if (estateAgentId != null) {
+        predicates.add(cb.equal(root.get("estateAgentId"), estateAgentId));
+      }
+      if (status != null) {
+        predicates.add(cb.equal(root.get("status"), status.name()));
+      }
+      if (startDate != null) {
+        predicates.add(cb.greaterThanOrEqualTo(root.get("startDateTime"), startDate));
+      }
+      if (endDate != null) {
+        predicates.add(cb.lessThanOrEqualTo(root.get("endDateTime"), endDate));
+      }
+      if (estateIds != null && !estateIds.isEmpty()) {
+        Subquery<Long> subquery = query.subquery(Long.class);
+        Root<EventTypeJpaEntity> eventType = subquery.from(EventTypeJpaEntity.class);
+        subquery.select(eventType.get("id"))
+          .where(eventType.get("estateId").in(estateIds));
+        predicates.add(root.get("eventTypeId").in(subquery));
+      }
+
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
   }
 
   private Specification<AppointmentJpaEntity> buildSpecification(

@@ -10,4 +10,5 @@ public final class CacheNames {
     public static final String EVENT_TYPE      = "event-type";
     public static final String EVENT_TYPES     = "event-types";
     public static final String AVAILABLE_SLOTS = "available-slots";
+    public static final String ESTATES         = "estates";
 }
