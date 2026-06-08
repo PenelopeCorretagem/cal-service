@@ -191,7 +191,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @PostMapping("/{id}/confirm")
     public ResponseEntity<AppointmentOutput> confirm(@PathVariable Long id, Authentication authentication) {
         AppointmentOutput currentAppointment = getUseCase.execute(id);
-        assertCanConfirmOrConclude(authentication, currentAppointment.estateAgentId());
+        assertCanConfirm(authentication, currentAppointment.estateAgentId());
         AppointmentOutput output = confirmUseCase.execute(new ConfirmAppointmentCommand(id));
         return ResponseEntity.ok(output);
     }
@@ -200,7 +200,7 @@ public class AppointmentController implements AppointmentControllerSwagger {
     @PostMapping("/{id}/conclude")
     public ResponseEntity<AppointmentOutput> conclude(@PathVariable Long id, Authentication authentication) {
         AppointmentOutput currentAppointment = getUseCase.execute(id);
-        assertCanConfirmOrConclude(authentication, currentAppointment.estateAgentId());
+        assertCanConclude(authentication, currentAppointment.estateAgentId());
         AppointmentOutput output = concludeUseCase.execute(new ConcludeAppointmentCommand(id));
         return ResponseEntity.ok(output);
     }
@@ -370,7 +370,19 @@ public class AppointmentController implements AppointmentControllerSwagger {
         }
     }
 
-    private void assertCanConfirmOrConclude(Authentication authentication, Long estateAgentId) {
+    private void assertCanConfirm(Authentication authentication, Long estateAgentId) {
+        if (isAdmin(authentication) || isClient(authentication)) {
+            return;
+        }
+
+        if (!isBroker(authentication)) {
+            throwNotFound();
+        }
+
+        assertBrokerOwnAppointment(authentication, estateAgentId);
+    }
+
+    private void assertCanConclude(Authentication authentication, Long estateAgentId) {
         if (isAdmin(authentication)) {
             return;
         }
